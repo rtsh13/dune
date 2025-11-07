@@ -8,3 +8,14 @@ hs_err_pid*
 /.vscode
 /.bloop
 /target
+/project/.bloop
+project/target
+
+
+# Ignore sbt/Scala Build Artifacts
+target/
+project/project
+project/target/
+project/project/target/
+project/.bloop/
+**/target/
