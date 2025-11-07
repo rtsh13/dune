@@ -1,4 +1,0 @@
-[debug] [dune-test] Classpath dependencies List()
-[debug] [dune-test] Dependencies from configurations List(dune)
-[debug] Bloop wrote the configuration of project 'dune-test' to '/Users/ashu/Documents/PDSS/dune/.bloop/dune-test.json'
-[success] Generated .bloop/dune-test.json
