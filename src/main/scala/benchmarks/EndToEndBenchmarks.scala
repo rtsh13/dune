@@ -1,5 +1,9 @@
 package benchmarks
 
+import org.apache.spark.SparkContext 
+import engine.storage._
+import engine.operations._
+
 object EndToEndBenchmarks {
   
   // Use Case 1: Iterative Algorithm (PageRank-like)
@@ -62,7 +66,8 @@ object EndToEndBenchmarks {
     val start = System.nanoTime()
     
     val AB = A * B
-    val result = AB * x
+    val AB_Matrix = AB.toCOO
+    val result = AB_Matrix * x
     result.entries.count()
     
     val elapsed = (System.nanoTime() - start) / 1000000.0
