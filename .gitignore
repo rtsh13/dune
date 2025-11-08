@@ -19,3 +19,5 @@ project/target/
 project/project/target/
 project/.bloop/
 **/target/
+
+/.bsp
