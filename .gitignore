@@ -23,3 +23,19 @@ project/.bloop/
 /.bsp
 
 .DS_Store
+
+
+
+# Ignore everything in synthetic-data directory
+synthetic-data/*
+
+# But keep these specific files
+!synthetic-data/dense_vector_10.csv
+!synthetic-data/dense_vector_100.csv
+!synthetic-data/dense_vector_1000.csv
+!synthetic-data/sparse_matrix_10x10.csv
+!synthetic-data/sparse_matrix_100x100.csv
+!synthetic-data/sparse_vector_10.csv
+!synthetic-data/sparse_vector_100.csv
+!synthetic-data/sparse_vector_1000.csv
+!synthetic-data/sparse_vector_10000.csv
