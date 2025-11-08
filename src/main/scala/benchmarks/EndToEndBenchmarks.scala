@@ -10,6 +10,7 @@ object EndToEndBenchmarks {
   def benchmarkIterativeAlgorithm(
     sc: SparkContext,
     matrixSize: Int,
+    dataDir: String,
     iterations: Int = 10
   ): (Double, Double) = {
     
@@ -17,7 +18,7 @@ object EndToEndBenchmarks {
     
     val matrix = SmartLoader.loadMatrix(
       sc,
-      s"data/benchmarks/matrix_${matrixSize}_sp0.99.csv"
+      s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv"
     )
     
     // Initialize vector
@@ -47,19 +48,20 @@ object EndToEndBenchmarks {
   // Use Case 2: Matrix Chain Multiplication
   def benchmarkMatrixChain(
     sc: SparkContext,
-    size: Int
+    size: Int,
+    dataDir: String,
   ): Map[String, Double] = {
     
     println("=== Matrix Chain Benchmark ===")
     
     val A = SmartLoader.loadMatrix(
-      sc, s"data/benchmarks/matrix_${size}_sp0.95.csv"
+      sc, s"$dataDir/sparse_matrix_${size}x${size}.csv"
     )
     val B = SmartLoader.loadMatrix(
-      sc, s"data/benchmarks/matrix_${size}_sp0.95.csv"
+      sc, s"$dataDir/sparse_matrix_${size}x${size}.csv"
     )
     val x = SmartLoader.loadVector(
-      sc, s"data/benchmarks/vector_${size}.csv"
+      sc, s"$dataDir/sparse_vector_${size}x${size}.csv"
     )
     
     // Compute (A * B) * x

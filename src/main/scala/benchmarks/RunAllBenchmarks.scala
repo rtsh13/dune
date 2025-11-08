@@ -1,7 +1,9 @@
 package benchmarks
 
+
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
+import engine.storage._
 
 object RunAllBenchmarks {
   
@@ -72,13 +74,13 @@ object RunAllBenchmarks {
       println("RUNNING SCALABILITY TESTS")
       println("="*80)
       
-      val scalabilityResults = ScalabilityBenchmarks.runScalabilityTest(
-        matrixSize = 1000,
-        sparsity = 0.85,
-        dataDir = "synthetic-data",
-        partitionCounts = Seq(2, 4, 8, 16),
-        iterations = 3
-      )
+val scalabilityResults = ScalabilityBenchmarks.runScalabilityTest(
+  conf,
+  matrixSize = 1000,
+  sparsity = 0.85,
+  dataDir = "synthetic-data",
+  workerCounts = Seq(2, 4, 8, 16)
+)
       
       // Run SpMM benchmarks
       println("\n" + "="*80)

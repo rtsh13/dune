@@ -11,6 +11,7 @@ object ScalabilityBenchmarks {
     baseConf: SparkConf,
     matrixSize: Int,
     sparsity: Double,
+    dataDir: String,
     workerCounts: Seq[Int] = Seq(1, 2, 4, 8)
   ): Seq[(Int, Double, Double)] = {
     
@@ -28,11 +29,11 @@ object ScalabilityBenchmarks {
       try {
         val matrix = SmartLoader.loadMatrix(
           sc,
-          s"data/benchmarks/matrix_${matrixSize}_sp${sparsity}.csv"
+          s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv"
         )
         val vector = SmartLoader.loadVector(
           sc,
-          s"data/benchmarks/vector_${matrixSize}.csv"
+          s"$dataDir/vector_${matrixSize}.csv"
         )
         
         // Warmup
