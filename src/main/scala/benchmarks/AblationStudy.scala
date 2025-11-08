@@ -4,9 +4,12 @@ package benchmarks
 import org.apache.spark.{SparkContext, HashPartitioner}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
-import engine.storage._
 import engine.operations.MultiplicationOps
 import scala.collection.mutable.ArrayBuffer
+import engine.storage._
+import engine.operations.MultiplicationOps
+import engine.optimization.OptimizedOps
+import engine.storage.FormatConverter
 
 object AblationStudy {
   
@@ -47,7 +50,7 @@ object AblationStudy {
     println(s"Vector: ${vector.size} elements")
     
     // Test all combinations of features
-    val features = Set(Partitioning, Caching, CSRFormat)
+    val features: Set[OptimizationFeature] = Set(Partitioning, Caching, CSRFormat)
     val combinations = features.subsets().toSeq.sortBy(_.size)
     
     println(s"\nTesting ${combinations.size} combinations of features...")
