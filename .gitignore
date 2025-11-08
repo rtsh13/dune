@@ -21,3 +21,5 @@ project/.bloop/
 **/target/
 
 /.bsp
+
+.DS_Store
