@@ -61,7 +61,7 @@ object EndToEndBenchmarks {
       sc, s"$dataDir/sparse_matrix_${size}x${size}.csv"
     )
     val x = SmartLoader.loadVector(
-      sc, s"$dataDir/sparse_vector_${size}x${size}.csv"
+      sc, s"$dataDir/sparse_vector_${size}.csv"
     )
     
     // Compute (A * B) * x

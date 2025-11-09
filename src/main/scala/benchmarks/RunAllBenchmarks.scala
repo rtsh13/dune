@@ -74,13 +74,13 @@ object RunAllBenchmarks {
       println("RUNNING SCALABILITY TESTS")
       println("="*80)
       
-val scalabilityResults = ScalabilityBenchmarks.runScalabilityTest(
-  conf,
-  matrixSize = 1000,
-  sparsity = 0.85,
-  dataDir = "synthetic-data",
-  workerCounts = Seq(2, 4, 8, 16)
-)
+// val scalabilityResults = ScalabilityBenchmarks.runScalabilityTest(
+//   conf,
+//   matrixSize = 1000,
+//   sparsity = 0.85,
+//   dataDir = "synthetic-data",
+//   workerCounts = Seq(2, 4, 8, 16)
+// )
       
       // Run SpMM benchmarks
       println("\n" + "="*80)

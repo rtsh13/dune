@@ -1,6 +1,7 @@
 // src/main/scala/benchmarks/MicroBenchmarks.scala
 package benchmarks
 
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
@@ -37,7 +38,7 @@ object MicroBenchmarks {
     val sparsity = 0.85 // Your data has 15% density = 85% sparsity
     
     println("\n" + "="*80)
-    println("SPARSE MATRIX × VECTOR (SpMV) BENCHMARKS")
+    println("SPARSE MATRIX x VECTOR (SpMV) BENCHMARKS")
     println("="*80)
     
     for (size <- sizes) {
@@ -128,9 +129,9 @@ object MicroBenchmarks {
         println(f"\n  *** SPEEDUP: ${speedup}%.2fx (${speedupPercent}%+.1f%%) ***")
         
         if (speedup > 1.0) {
-          println(f"  ✓ Custom implementation is ${speedup}%.2fx FASTER")
+          println(f" Custom implementation is ${speedup}%.2fx FASTER")
         } else {
-          println(f"  ✗ Custom implementation is ${1.0/speedup}%.2fx SLOWER")
+          println(f" Custom implementation is ${1.0/speedup}%.2fx SLOWER")
         }
         
       } catch {
@@ -489,6 +490,46 @@ object MicroBenchmarks {
     if (speedups.nonEmpty) {
       val avgSpeedup = speedups.sum / speedups.length
       println(f"\nAverage Speedup: ${avgSpeedup}%.2fx")
+    }
+  }
+}
+
+object MicroBenchmarksRunner {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setAppName("Micro Benchmarks")
+      .setMaster("local[*]")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.driver.memory", "4g")
+    
+    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder().config(conf).getOrCreate()
+    sc.setLogLevel("WARN")
+    
+    try {
+      println("\n" + "="*80)
+      println("RUNNING MICROBENCHMARKS ONLY")
+      println("="*80)
+      
+      BenchmarkSetup.logEnvironment(sc)
+      
+      // Run SpMV benchmarks
+      val spmvResults = MicroBenchmarks.runSpMVBenchmarks(
+        sc, spark,
+        dataDir = "synthetic-data",
+        sizes = Seq(10, 100, 1000),
+        iterations = 5
+      )
+      
+      println("\n✓ Microbenchmarks complete!")
+      
+    } catch {
+      case e: Exception =>
+        println(s"\n✗ ERROR: ${e.getMessage}")
+        e.printStackTrace()
+    } finally {
+      spark.stop()
+      sc.stop()
     }
   }
 }

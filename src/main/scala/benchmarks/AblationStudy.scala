@@ -115,6 +115,11 @@ object AblationStudy {
     
     // Apply caching
     if (features.contains(Caching)) {
+      // Unpersist first if already cached
+      matrixData.unpersist(blocking = false)
+      vectorData.unpersist(blocking = false)
+      
+      // Now cache with our desired storage level
       matrixData = matrixData.persist(StorageLevel.MEMORY_AND_DISK)
       vectorData = vectorData.persist(StorageLevel.MEMORY_AND_DISK)
       matrixData.count() // materialize
