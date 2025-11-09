@@ -1,4 +1,3 @@
-// src/main/scala/benchmarks/MicroBenchmarks.scala
 package benchmarks
 
 import org.apache.spark.SparkContext
@@ -15,141 +14,174 @@ case class BenchmarkResult(
   sparsity: Double,
   implementation: String,
   executionTimeMs: Long,
-  throughput: Double, // operations per second
+  throughput: Double,
   memoryUsedMB: Double
 )
 
 object MicroBenchmarks {
   
-  /**
-   * Run comprehensive SpMV (Sparse Matrix × Vector) benchmarks
-   * Compares your custom implementation against Spark DataFrame baseline
-   */
-  def runSpMVBenchmarks(
+  def runAllSpMVBenchmarks(
     sc: SparkContext,
     spark: SparkSession,
     dataDir: String = "synthetic-data",
-    sizes: Seq[Int] = Seq(10, 100, 1000),
     iterations: Int = 5
   ): Seq[BenchmarkResult] = {
     
     val results = ArrayBuffer[BenchmarkResult]()
-    val sparsity = 0.85 // Your data has 15% density = 85% sparsity
     
     println("\n" + "="*80)
-    println("SPARSE MATRIX × VECTOR (SpMV) BENCHMARKS")
+    println("SPARSE MATRIX x VECTOR (SpMV) BENCHMARKS")
+    println("Testing ALL available datasets")
     println("="*80)
     
-    for (size <- sizes) {
-      println(s"\n${"="*80}")
-      println(s"Matrix Size: ${size}x${size}, Sparsity: ${sparsity*100}%")
+    val datasets = DatasetDiscovery.discoverAllDatasets(dataDir)
+    
+    if (datasets.isEmpty) {
+      println("ERROR: No datasets found in " + dataDir)
+      return Seq.empty
+    }
+    
+    val byCategory = datasets.groupBy(_.category)
+    
+    def getIterations(category: String): Int = category match {
+      case "Small" => iterations
+      case "Medium" => math.max(3, iterations - 2)
+      case "Large" => 3
+      case "Extra-Large" => 2
+      case _ => 3
+    }
+    
+    for ((category, categoryDatasets) <- byCategory.toSeq.sortBy(_._1)) {
+      val iters = getIterations(category)
+      
+      println("\n" + "="*80)
+      println(s"CATEGORY: $category (${categoryDatasets.size} datasets, $iters iterations)")
       println("="*80)
       
-      val matrixPath = s"$dataDir/sparse_matrix_${size}x${size}.csv"
-      val vectorPath = s"$dataDir/dense_vector_${size}.csv"
-      
-      println(s"Loading data:")
-      println(s"  Matrix: $matrixPath")
-      println(s"  Vector: $vectorPath")
-      
-      try {
-        val matrix = SmartLoader.loadMatrix(sc, matrixPath)
-        val vector = SmartLoader.loadVector(sc, vectorPath)
+      for (ds <- categoryDatasets) {
+        println(s"\n--- Dataset: ${ds.size}x${ds.size} (${ds.fileSizeMB}%.1f MB) ---")
         
-        println(s"\nMatrix info: $matrix")
-        println(s"Vector info: $vector")
+        val matrixPath = s"$dataDir/${ds.matrixFile}"
+        val vectorPath = s"$dataDir/${ds.vectorFile}"
         
-        // Warmup runs
-        println("\n--- Warmup (2 iterations) ---")
-        for (i <- 1 to 2) {
-          val result = matrix * vector
-          val count = result.entries.count()
-          println(f"  Warmup $i: result has $count entries")
+        try {
+          println(s"Loading ${ds.size}x${ds.size} matrix...")
+          val loadStart = System.nanoTime()
+          
+          val matrix = SmartLoader.loadMatrix(sc, matrixPath)
+          val vector = SmartLoader.loadVector(sc, vectorPath)
+          
+          val loadTime = (System.nanoTime() - loadStart) / 1000000.0
+          println(f"Loaded in ${loadTime}%.2f ms")
+          println(s"  Matrix: $matrix")
+          println(s"  Vector: $vector")
+          
+          println("\nWarmup...")
+          val warmupResult = matrix * vector
+          val warmupCount = warmupResult.entries.count()
+          println(s"Warmup complete: $warmupCount entries")
+          
+          println(s"\nBenchmarking ($iters iterations)...")
+          val customTimes = ArrayBuffer[Long]()
+          val customMemory = ArrayBuffer[Double]()
+          
+          for (i <- 1 to iters) {
+            System.gc()
+            Thread.sleep(if (ds.category == "Extra-Large") 2000 else 500)
+            
+            val memBefore = getMemoryUsage()
+            val start = System.nanoTime()
+            
+            val result = matrix * vector
+            val count = result.entries.count()
+            
+            val elapsed = (System.nanoTime() - start) / 1000000
+            val memAfter = getMemoryUsage()
+            val memUsed = memAfter - memBefore
+            
+            customTimes += elapsed
+            customMemory += memUsed
+            
+            println(f"  Iteration $i: ${elapsed}%,6d ms | Memory: ${memUsed}%,8.2f MB | Result: $count entries")
+          }
+          
+          val avgCustomTime = customTimes.sum / iters.toDouble
+          val stdDevCustom = calculateStdDev(customTimes.map(_.toDouble), avgCustomTime)
+          val avgCustomMemory = customMemory.sum / customMemory.length
+          val throughput = (ds.size.toLong * ds.size) / (avgCustomTime / 1000.0)
+          
+          println(f"\nAverage: ${avgCustomTime}%,.2f ms +/- ${stdDevCustom}%.2f ms")
+          println(f"Throughput: ${throughput}%,.0f ops/sec")
+          println(f"Avg Memory: ${avgCustomMemory}%,.2f MB")
+          
+          results += BenchmarkResult(
+            "SpMV", ds.size, 0.95, "Custom", 
+            avgCustomTime.toLong, throughput, avgCustomMemory
+          )
+          
+          val shouldTestDataFrame = ds.category match {
+            case "Small" => true
+            case "Medium" => true
+            case "Large" if ds.size <= 12000 => {
+              println("\nWARNING: Testing DataFrame on Large dataset - may be slow")
+              true
+            }
+            case _ => false
+          }
+          
+          if (shouldTestDataFrame) {
+            println(s"\nDataFrame baseline ($iters iterations)...")
+            try {
+              val dfTimes = runDataFrameSpMV(spark, matrix, vector, iters)
+              val avgDFTime = dfTimes.sum / iters.toDouble
+              val stdDevDF = calculateStdDev(dfTimes, avgDFTime)
+              val dfThroughput = (ds.size.toLong * ds.size) / (avgDFTime / 1000.0)
+              
+              println(f"DataFrame Average: ${avgDFTime}%,.2f ms +/- ${stdDevDF}%.2f ms")
+              
+              results += BenchmarkResult(
+                "SpMV", ds.size, 0.95, "DataFrame",
+                avgDFTime.toLong, dfThroughput, 0.0
+              )
+              
+              val speedup = avgDFTime / avgCustomTime
+              val speedupPercent = ((avgDFTime - avgCustomTime) / avgDFTime) * 100
+              
+              println(f"\nSpeedup: ${speedup}%.2fx (${speedupPercent}%+.1f%%)")
+              
+              if (speedup > 1.0) {
+                println(f"Custom implementation is ${speedup}%.2fx FASTER")
+              } else {
+                println(f"Custom implementation is ${1.0/speedup}%.2fx SLOWER")
+              }
+            } catch {
+              case e: OutOfMemoryError =>
+                println("DataFrame ran out of memory - skipping")
+              case e: Exception =>
+                println(s"DataFrame failed: ${e.getMessage}")
+            }
+          }
+          
+        } catch {
+          case e: OutOfMemoryError =>
+            println(s"\nOUT OF MEMORY for ${ds.size}x${ds.size} dataset")
+            println("  Try: Increase spark.driver.memory")
+            println(s"  Error: ${e.getMessage}")
+            
+          case e: Exception =>
+            println(s"\nERROR: Could not complete benchmark for ${ds.size}x${ds.size}")
+            println(s"  ${e.getMessage}")
+            if (ds.category != "Extra-Large") {
+              e.printStackTrace()
+            }
         }
-        
-        // Benchmark 1: Your Custom Implementation
-        println(s"\n--- Custom Implementation ($iterations iterations) ---")
-        val customTimes = ArrayBuffer[Long]()
-        val customMemory = ArrayBuffer[Double]()
-        
-        for (i <- 1 to iterations) {
-          System.gc()
-          Thread.sleep(500)
-          
-          val memBefore = getMemoryUsage()
-          val start = System.nanoTime()
-          
-          val result = matrix * vector
-          val count = result.entries.count()
-          
-          val elapsed = (System.nanoTime() - start) / 1000000 // ms
-          val memAfter = getMemoryUsage()
-          val memUsed = memAfter - memBefore
-          
-          customTimes += elapsed
-          customMemory += memUsed
-          
-          println(f"  Iteration $i: ${elapsed}%,6d ms | Memory: ${memUsed}%,8.2f MB | Result: $count entries")
-        }
-        
-        val avgCustomTime = customTimes.sum / iterations.toDouble
-        val stdDevCustom = calculateStdDev(customTimes.map(_.toDouble), avgCustomTime)
-        val avgCustomMemory = customMemory.sum / customMemory.length
-        val throughput = (size.toLong * size) / (avgCustomTime / 1000.0) // ops/sec
-        
-        println(f"\n  Average: ${avgCustomTime}%,.2f ms ± ${stdDevCustom}%.2f ms")
-        println(f"  Throughput: ${throughput}%,.0f ops/sec")
-        println(f"  Avg Memory: ${avgCustomMemory}%,.2f MB")
-        
-        results += BenchmarkResult(
-          "SpMV", size, sparsity, "Custom", 
-          avgCustomTime.toLong, throughput, avgCustomMemory
-        )
-        
-        // Benchmark 2: Spark DataFrame Baseline
-        println(s"\n--- DataFrame Baseline ($iterations iterations) ---")
-        val dfTimes = runDataFrameSpMV(spark, matrix, vector, iterations)
-        val avgDFTime = dfTimes.sum / iterations.toDouble
-        val stdDevDF = calculateStdDev(dfTimes, avgDFTime)
-        val dfThroughput = (size.toLong * size) / (avgDFTime / 1000.0)
-        
-        println(f"\n  Average: ${avgDFTime}%,.2f ms ± ${stdDevDF}%.2f ms")
-        println(f"  Throughput: ${dfThroughput}%,.0f ops/sec")
-        
-        results += BenchmarkResult(
-          "SpMV", size, sparsity, "DataFrame",
-          avgDFTime.toLong, dfThroughput, 0.0
-        )
-        
-        // Calculate speedup
-        val speedup = avgDFTime / avgCustomTime
-        val speedupPercent = ((avgDFTime - avgCustomTime) / avgDFTime) * 100
-        
-        println(f"\n  *** SPEEDUP: ${speedup}%.2fx (${speedupPercent}%+.1f%%) ***")
-        
-        if (speedup > 1.0) {
-          println(f"  ✓ Custom implementation is ${speedup}%.2fx FASTER")
-        } else {
-          println(f"  ✗ Custom implementation is ${1.0/speedup}%.2fx SLOWER")
-        }
-        
-      } catch {
-        case e: Exception =>
-          println(s"\n✗ ERROR: Could not complete benchmark for size=$size")
-          println(s"  ${e.getMessage}")
-          e.printStackTrace()
       }
     }
     
-    // Summary
     printSpMVSummary(results)
-    
     results.toSeq
   }
   
-  /**
-   * DataFrame-based SpMV implementation (baseline for comparison)
-   */
   def runDataFrameSpMV(
     spark: SparkSession,
     matrix: Matrix,
@@ -160,7 +192,6 @@ object MicroBenchmarks {
     
     val times = ArrayBuffer[Double]()
     
-    // Convert to DataFrame once
     val matrixDF = matrix.toCOO.entries
       .map(e => (e.row, e.col, e.value))
       .toDF("row", "col", "matValue")
@@ -170,7 +201,6 @@ object MicroBenchmarks {
       .toDF("col", "vecValue")
       .cache()
     
-    // Force caching
     matrixDF.count()
     vectorDF.count()
     
@@ -199,13 +229,10 @@ object MicroBenchmarks {
     times.toSeq
   }
   
-  /**
-   * Compare baseline vs optimized implementations
-   */
   def runOptimizationComparison(
     sc: SparkContext,
     dataDir: String = "synthetic-data",
-    size: Int = 1000,
+    targetSize: Option[Int] = None,
     iterations: Int = 5
   ): Map[String, Double] = {
     
@@ -213,16 +240,38 @@ object MicroBenchmarks {
     println("OPTIMIZATION COMPARISON: Baseline vs Optimized")
     println("="*80)
     
-    val matrixPath = s"$dataDir/sparse_matrix_${size}x${size}.csv"
-    val vectorPath = s"$dataDir/dense_vector_${size}.csv"
+    val datasets = DatasetDiscovery.discoverAllDatasets(dataDir)
     
-    println(s"\nMatrix Size: ${size}x${size}")
+    val selectedDataset = targetSize match {
+      case Some(size) => datasets.find(_.size == size)
+      case None => {
+        val large = datasets.filter(ds => ds.category == "Large" || ds.category == "Extra-Large")
+        if (large.nonEmpty) {
+          println("Using LARGE dataset for optimization comparison")
+          Some(large.maxBy(_.size))
+        } else {
+          println("No large datasets found, using Medium")
+          datasets.find(_.category == "Medium")
+        }
+      }
+    }
+    
+    if (selectedDataset.isEmpty) {
+      println("ERROR: No suitable dataset found for optimization comparison")
+      return Map.empty
+    }
+    
+    val ds = selectedDataset.get
+    
+    val matrixPath = s"$dataDir/${ds.matrixFile}"
+    val vectorPath = s"$dataDir/${ds.vectorFile}"
+    
+    println(s"\nDataset: ${ds.size}x${ds.size} (${ds.fileSizeMB}%.1f MB, ${ds.category})")
     println(s"Loading from: $matrixPath")
     
     val matrix = SmartLoader.loadMatrix(sc, matrixPath).toCOO
     val vector = SmartLoader.loadVector(sc, vectorPath)
     
-    // Warmup
     println("\nWarmup...")
     for (_ <- 1 to 2) {
       MultiplicationOps.sparseMatrixDenseVector(
@@ -231,13 +280,14 @@ object MicroBenchmarks {
       ).count()
     }
     
-    // Baseline (no optimization)
-    println(s"\n--- Baseline Implementation ($iterations iterations) ---")
+    val actualIterations = if (ds.size > 20000) 3 else iterations
+    
+    println(s"\n--- Baseline Implementation ($actualIterations iterations) ---")
     val baselineTimes = ArrayBuffer[Long]()
     
-    for (i <- 1 to iterations) {
+    for (i <- 1 to actualIterations) {
       System.gc()
-      Thread.sleep(500)
+      Thread.sleep(1000)
       
       val start = System.nanoTime()
       
@@ -253,16 +303,15 @@ object MicroBenchmarks {
       println(f"  Iteration $i: ${elapsed}%,6d ms")
     }
     
-    val avgBaseline = baselineTimes.sum / iterations.toDouble
-    println(f"\n  Average: ${avgBaseline}%,.2f ms")
+    val avgBaseline = baselineTimes.sum / actualIterations.toDouble
+    println(f"\nBaseline Average: ${avgBaseline}%,.2f ms")
     
-    // Optimized version
-    println(s"\n--- Optimized Implementation ($iterations iterations) ---")
+    println(s"\n--- Optimized Implementation ($actualIterations iterations) ---")
     val optimizedTimes = ArrayBuffer[Long]()
     
-    for (i <- 1 to iterations) {
+    for (i <- 1 to actualIterations) {
       System.gc()
-      Thread.sleep(500)
+      Thread.sleep(1000)
       
       val start = System.nanoTime()
       
@@ -279,45 +328,55 @@ object MicroBenchmarks {
       println(f"  Iteration $i: ${elapsed}%,6d ms")
     }
     
-    val avgOptimized = optimizedTimes.sum / iterations.toDouble
+    val avgOptimized = optimizedTimes.sum / actualIterations.toDouble
     val speedup = avgBaseline / avgOptimized
     val improvement = ((avgBaseline - avgOptimized) / avgBaseline) * 100
     
-    println(f"\n  Average: ${avgOptimized}%,.2f ms")
-    println(f"\n  *** SPEEDUP: ${speedup}%.2fx (${improvement}%+.1f%% improvement) ***")
+    println(f"\nOptimized Average: ${avgOptimized}%,.2f ms")
+    println(f"\nSPEEDUP: ${speedup}%.2fx (${improvement}%+.1f%% improvement)")
+    
+    if (speedup > 1.0) {
+      println(f"SUCCESS: Optimizations are EFFECTIVE at scale ${ds.size}x${ds.size}")
+    } else {
+      println(f"NOTE: Optimization overhead still dominates at ${ds.size}x${ds.size}")
+    }
     
     Map(
       "baseline" -> avgBaseline,
       "optimized" -> avgOptimized,
       "speedup" -> speedup,
-      "improvement_percent" -> improvement
+      "improvement_percent" -> improvement,
+      "dataset_size" -> ds.size.toDouble
     )
   }
   
-  /**
-   * Benchmark Sparse Matrix × Sparse Matrix multiplication
-   */
   def runSpMMBenchmarks(
     sc: SparkContext,
     spark: SparkSession,
     dataDir: String = "synthetic-data",
-    sizes: Seq[Int] = Seq(10, 100, 500),
+    maxSize: Int = 500,
     iterations: Int = 3
   ): Seq[BenchmarkResult] = {
     
     val results = ArrayBuffer[BenchmarkResult]()
-    val sparsity = 0.85
     
     println("\n" + "="*80)
-    println("SPARSE MATRIX × SPARSE MATRIX (SpMM) BENCHMARKS")
+    println("SPARSE MATRIX x SPARSE MATRIX (SpMM) BENCHMARKS")
     println("="*80)
     
-    for (size <- sizes) {
-      println(s"\n${"="*80}")
-      println(s"Matrix Size: ${size}x${size}")
-      println("="*80)
+    val datasets = DatasetDiscovery.discoverAllDatasets(dataDir)
+      .filter(_.size <= maxSize)
+      .filter(ds => ds.category == "Small" || ds.category == "Medium")
+    
+    if (datasets.isEmpty) {
+      println("No suitable datasets found for SpMM (need size <= " + maxSize + ")")
+      return Seq.empty
+    }
+    
+    for (ds <- datasets) {
+      println(s"\n--- Dataset: ${ds.size}x${ds.size} ---")
       
-      val matrixPath = s"$dataDir/sparse_matrix_${size}x${size}.csv"
+      val matrixPath = s"$dataDir/${ds.matrixFile}"
       
       try {
         val matrixA = SmartLoader.loadMatrix(sc, matrixPath).toCOO
@@ -326,12 +385,10 @@ object MicroBenchmarks {
         println(s"Matrix A: ${matrixA.numNonZeros} non-zeros")
         println(s"Matrix B: ${matrixB.numNonZeros} non-zeros")
         
-        // Warmup
-        println("\n--- Warmup ---")
+        println("\nWarmup...")
         (matrixA * matrixB).toCOO.entries.count()
         
-        // Benchmark
-        println(s"\n--- SpMM Benchmark ($iterations iterations) ---")
+        println(s"\nBenchmarking ($iterations iterations)...")
         val times = ArrayBuffer[Long]()
         
         for (i <- 1 to iterations) {
@@ -351,19 +408,19 @@ object MicroBenchmarks {
         
         val avgTime = times.sum / iterations.toDouble
         val stdDev = calculateStdDev(times.map(_.toDouble), avgTime)
-        val throughput = (size.toLong * size * size) / (avgTime / 1000.0)
+        val throughput = (ds.size.toLong * ds.size * ds.size) / (avgTime / 1000.0)
         
-        println(f"\n  Average: ${avgTime}%,.2f ms ± ${stdDev}%.2f ms")
-        println(f"  Throughput: ${throughput}%,.0f ops/sec")
+        println(f"\nAverage: ${avgTime}%,.2f ms +/- ${stdDev}%.2f ms")
+        println(f"Throughput: ${throughput}%,.0f ops/sec")
         
         results += BenchmarkResult(
-          "SpMM", size, sparsity, "Custom",
+          "SpMM", ds.size, 0.95, "Custom",
           avgTime.toLong, throughput, 0.0
         )
         
       } catch {
         case e: Exception =>
-          println(s"\n✗ ERROR: Could not complete SpMM benchmark for size=$size")
+          println(s"\nERROR: Could not complete SpMM benchmark for ${ds.size}x${ds.size}")
           println(s"  ${e.getMessage}")
       }
     }
@@ -371,13 +428,10 @@ object MicroBenchmarks {
     results.toSeq
   }
   
-  /**
-   * Benchmark CSR vs COO format performance
-   */
   def runFormatComparisonBenchmark(
     sc: SparkContext,
     dataDir: String = "synthetic-data",
-    size: Int = 1000,
+    targetSize: Option[Int] = None,
     iterations: Int = 5
   ): Map[String, Double] = {
     
@@ -385,23 +439,48 @@ object MicroBenchmarks {
     println("FORMAT COMPARISON: COO vs CSR")
     println("="*80)
     
-    val matrixPath = s"$dataDir/sparse_matrix_${size}x${size}.csv"
-    val vectorPath = s"$dataDir/dense_vector_${size}.csv"
+    val datasets = DatasetDiscovery.discoverAllDatasets(dataDir)
+    
+    val selectedDataset = targetSize match {
+      case Some(size) => datasets.find(_.size == size)
+      case None => {
+        val large = datasets.filter(ds => ds.category == "Large" || ds.category == "Extra-Large")
+        if (large.nonEmpty) {
+          println("Using LARGE dataset for format comparison")
+          Some(large.maxBy(_.size))
+        } else {
+          println("No large datasets found, using Medium")
+          datasets.find(_.category == "Medium")
+        }
+      }
+    }
+    
+    if (selectedDataset.isEmpty) {
+      println("ERROR: No suitable dataset found")
+      return Map.empty
+    }
+    
+    val ds = selectedDataset.get
+    
+    val matrixPath = s"$dataDir/${ds.matrixFile}"
+    val vectorPath = s"$dataDir/${ds.vectorFile}"
+    
+    println(s"\nDataset: ${ds.size}x${ds.size} (${ds.fileSizeMB}%.1f MB, ${ds.category})")
     
     val matrixCOO = SmartLoader.loadMatrix(sc, matrixPath).toCOO
     val matrixCSR = matrixCOO.toCSR
     val vector = SmartLoader.loadVector(sc, vectorPath)
     
-    println(s"\nMatrix: ${size}x${size}")
     println(s"Non-zeros: ${matrixCOO.numNonZeros}")
     
-    // Benchmark COO format
-    println(s"\n--- COO Format ($iterations iterations) ---")
+    val actualIterations = if (ds.size > 20000) 3 else iterations
+    
+    println(s"\n--- COO Format ($actualIterations iterations) ---")
     val cooTimes = ArrayBuffer[Long]()
     
-    for (i <- 1 to iterations) {
+    for (i <- 1 to actualIterations) {
       System.gc()
-      Thread.sleep(500)
+      Thread.sleep(1000)
       
       val start = System.nanoTime()
       val result = matrixCOO * vector
@@ -412,16 +491,15 @@ object MicroBenchmarks {
       println(f"  Iteration $i: ${elapsed}%,6d ms")
     }
     
-    val avgCOO = cooTimes.sum / iterations.toDouble
-    println(f"\n  Average: ${avgCOO}%,.2f ms")
+    val avgCOO = cooTimes.sum / actualIterations.toDouble
+    println(f"\nCOO Average: ${avgCOO}%,.2f ms")
     
-    // Benchmark CSR format
-    println(s"\n--- CSR Format ($iterations iterations) ---")
+    println(s"\n--- CSR Format ($actualIterations iterations) ---")
     val csrTimes = ArrayBuffer[Long]()
     
-    for (i <- 1 to iterations) {
+    for (i <- 1 to actualIterations) {
       System.gc()
-      Thread.sleep(500)
+      Thread.sleep(1000)
       
       val start = System.nanoTime()
       val result = matrixCSR * vector
@@ -432,20 +510,23 @@ object MicroBenchmarks {
       println(f"  Iteration $i: ${elapsed}%,6d ms")
     }
     
-    val avgCSR = csrTimes.sum / iterations.toDouble
+    val avgCSR = csrTimes.sum / actualIterations.toDouble
     val speedup = avgCOO / avgCSR
     
-    println(f"\n  Average: ${avgCSR}%,.2f ms")
-    println(f"\n  CSR is ${speedup}%.2fx vs COO")
+    println(f"\nCSR Average: ${avgCSR}%,.2f ms")
+    println(f"\nCSR is ${speedup}%.2fx vs COO")
+    
+    if (speedup > 1.0) {
+      println(f"CSR format shows ${(speedup - 1.0) * 100}%.1f%% improvement at this scale")
+    }
     
     Map(
       "COO" -> avgCOO,
       "CSR" -> avgCSR,
-      "speedup" -> speedup
+      "speedup" -> speedup,
+      "dataset_size" -> ds.size.toDouble
     )
   }
-  
-  // Helper functions
   
   private def getMemoryUsage(): Double = {
     val runtime = Runtime.getRuntime
@@ -465,20 +546,21 @@ object MicroBenchmarks {
     
     val grouped = results.groupBy(_.matrixSize)
     
+    println("\n| Size      | Custom (ms) | DataFrame (ms) | Speedup |")
+    println("|-----------|-------------|----------------|---------|")
+    
     for ((size, group) <- grouped.toSeq.sortBy(_._1)) {
       val custom = group.find(_.implementation == "Custom")
       val baseline = group.find(_.implementation == "DataFrame")
       
       if (custom.isDefined && baseline.isDefined) {
         val speedup = baseline.get.executionTimeMs.toDouble / custom.get.executionTimeMs
-        println(f"\nSize ${size}x${size}:")
-        println(f"  Custom:     ${custom.get.executionTimeMs}%,6d ms")
-        println(f"  DataFrame:  ${baseline.get.executionTimeMs}%,6d ms")
-        println(f"  Speedup:    ${speedup}%.2fx")
+        println(f"| ${size}x${size}%-9s | ${custom.get.executionTimeMs}%,11d | ${baseline.get.executionTimeMs}%,14d | ${speedup}%7.2fx |")
+      } else if (custom.isDefined) {
+        println(f"| ${size}x${size}%-9s | ${custom.get.executionTimeMs}%,11d | N/A            | N/A     |")
       }
     }
     
-    // Overall average speedup
     val speedups = grouped.values.flatMap { group =>
       for {
         custom <- group.find(_.implementation == "Custom")
