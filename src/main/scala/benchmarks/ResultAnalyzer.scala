@@ -1,4 +1,3 @@
-// src/main/scala/benchmarks/ResultsAnalyzer.scala
 package benchmarks
 
 import java.io.PrintWriter
@@ -14,18 +13,24 @@ object ResultsAnalyzer {
     
     writer.println("# Sparse Matrix Engine Performance Report\n")
     
-    // Summary statistics
+    // Summary statistics - FIX HERE
     writer.println("## Summary")
-    val avgSpeedup = results
-      .groupBy(r => (r.operation, r.matrixSize, r.sparsity))
-      .map { case (key, group) =>
-        val custom = group.find(_.implementation == "Custom").get
-        val baseline = group.find(_.implementation == "DataFrame").get
-        baseline.executionTimeMs.toDouble / custom.executionTimeMs
-      }
-      .sum / results.size
     
-    writer.println(f"Average Speedup: ${avgSpeedup}%.2fx\n")
+    val speedups = results
+      .groupBy(r => (r.operation, r.matrixSize, r.sparsity))
+      .flatMap { case (key, group) =>
+        for {
+          custom <- group.find(_.implementation == "Custom")
+          baseline <- group.find(_.implementation == "DataFrame")
+        } yield baseline.executionTimeMs.toDouble / custom.executionTimeMs
+      }
+    
+    if (speedups.nonEmpty) {
+      val avgSpeedup = speedups.sum / speedups.size
+      writer.println(f"Average Speedup (vs DataFrame): ${avgSpeedup}%.2fx\n")
+    } else {
+      writer.println("No DataFrame comparisons available\n")
+    }
     
     // Detailed results table
     writer.println("## Detailed Results\n")
@@ -37,8 +42,26 @@ object ResultsAnalyzer {
         writer.println(f"| ${r.operation} | ${r.matrixSize} | ${r.sparsity}%.3f | ${r.implementation} | ${r.executionTimeMs} | ${r.throughput}%.2e |")
       }
     
+    // Add SpMV-specific summary if available
+    val spmvResults = results.filter(_.operation == "SpMV")
+    if (spmvResults.nonEmpty) {
+      writer.println("\n## SpMV Performance Summary\n")
+      
+      spmvResults.groupBy(r => (r.matrixSize, r.sparsity))
+        .toSeq.sortBy(_._1._1)
+        .foreach { case ((size, sparsity), group) =>
+          val custom = group.find(_.implementation == "Custom")
+          val baseline = group.find(_.implementation == "DataFrame")
+          
+          if (custom.isDefined && baseline.isDefined) {
+            val speedup = baseline.get.executionTimeMs.toDouble / custom.get.executionTimeMs
+            writer.println(f"**${size}x${size}**: ${custom.get.executionTimeMs}ms (Custom) vs ${baseline.get.executionTimeMs}ms (DataFrame) = ${speedup}%.2fx speedup")
+          }
+        }
+    }
+    
     writer.close()
-    println(s"Report written to $outputFile")
+    println(s"✓ Report written to $outputFile")
   }
   
   def generateCSV(results: Seq[BenchmarkResult], outputFile: String): Unit = {
@@ -50,5 +73,6 @@ object ResultsAnalyzer {
     }
     
     writer.close()
+    println(s"✓ CSV written to $outputFile")
   }
 }

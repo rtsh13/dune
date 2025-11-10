@@ -1,5 +1,5 @@
 package benchmarks
-
+ 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
@@ -7,7 +7,7 @@ import engine.storage._
 import engine.operations.MultiplicationOps
 import engine.optimization.OptimizedOps
 import scala.collection.mutable.ArrayBuffer
-
+ 
 case class BenchmarkResult(
   operation: String,
   matrixSize: Int,
@@ -17,7 +17,7 @@ case class BenchmarkResult(
   throughput: Double,
   memoryUsedMB: Double
 )
-
+ 
 object MicroBenchmarks {
   
   def runAllSpMVBenchmarks(
@@ -115,7 +115,7 @@ object MicroBenchmarks {
           println(f"Avg Memory: ${avgCustomMemory}%,.2f MB")
           
           results += BenchmarkResult(
-            "SpMV", ds.size, 0.95, "Custom", 
+            "SpMV", ds.size, 0.95, "Custom",
             avgCustomTime.toLong, throughput, avgCustomMemory
           )
           
