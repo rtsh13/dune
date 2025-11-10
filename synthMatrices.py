@@ -4,7 +4,7 @@ import scipy.sparse as sp
 import os
 
 # ===== CONFIGURATION =====
-square_sizes = [10, 100, 1000, 10000, 50000]
+square_sizes = [10, 100, 1000, 5000, 10000]
 rectangular_sizes = [
     (10, 15),
     (100, 150),
@@ -12,9 +12,9 @@ rectangular_sizes = [
     (10000, 15000),
     (50000, 75000)
 ]
-sparse_density = 0.15   # For sparse matrices
+sparse_density = 0.85   # For sparse matrices
 dense_density = 1.0     # For dense matrices (100% non-zero)
-dense_square_sizes = [10, 100, 1000]  # Smaller sizes for dense
+dense_square_sizes = [10, 100, 1000, 5000, 10000]  # Smaller sizes for dense
 dense_rectangular_sizes = [(10, 15), (100, 150), (1000, 1500)]  # Dense rectangular
 seed = 42
 output_dir = "synthetic-data"

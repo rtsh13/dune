@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.2.15" % Test
 )
 
-// Add JVM options for Java 17 compatibility with Spark
+// Adding JVM options for Java 17 compatibility with Spark
 fork := true
 javaOptions ++= Seq(
   "--add-opens=java.base/java.lang=ALL-UNNAMED",
@@ -25,5 +25,8 @@ javaOptions ++= Seq(
   "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
   "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
   "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
-  "-Djdk.reflect.useDirectMethodHandle=false"
+  "-Djdk.reflect.useDirectMethodHandle=false",
+  "-Xmx16g",      // Maximum heap size
+  "-Xms8g",       // Initial heap size
+  "-XX:+UseG1GC"  // Use G1 garbage collector
 )

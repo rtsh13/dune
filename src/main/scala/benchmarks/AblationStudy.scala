@@ -1,200 +1,160 @@
-// src/main/scala/benchmarks/AblationStudy.scala
 package benchmarks
 
 import org.apache.spark.{SparkContext, HashPartitioner}
-import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
-import engine.operations.MultiplicationOps
-import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.rdd.RDD
 import engine.storage._
 import engine.operations.MultiplicationOps
-import engine.optimization.OptimizedOps
-import engine.storage.FormatConverter
+import engine.optimization.{OptimizedOps, AdaptiveOps}
+import scala.collection.mutable.ArrayBuffer
 
 object AblationStudy {
-  
-  sealed trait OptimizationFeature
-  case object Partitioning extends OptimizationFeature
-  case object Caching extends OptimizationFeature
-  case object CSRFormat extends OptimizationFeature
-  case object BlockPartitioning extends OptimizationFeature
-  
+
   def runAblationStudy(
     sc: SparkContext,
     matrixSize: Int,
     sparsity: Double,
     dataDir: String = "synthetic-data",
-    iterations: Int = 5
-  ): Map[Set[OptimizationFeature], Double] = {
-    
+    iterations: Int = 3
+  ): Map[Set[String], Double] = {
+
     println("\n" + "="*80)
-    println("ABLATION STUDY")
+    println("ABLATION STUDY: Impact of Individual Optimizations")
     println("="*80)
-    println(s"Matrix Size: ${matrixSize}x${matrixSize}")
-    println(s"Testing all combinations of optimizations...")
-    
-    val results = scala.collection.mutable.Map[Set[OptimizationFeature], Double]()
-    
-    // Load data
+    println(s"Matrix: ${matrixSize}x${matrixSize}, Sparsity: ${sparsity*100}%")
+
     val matrixPath = s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv"
     val vectorPath = s"$dataDir/dense_vector_${matrixSize}.csv"
-    
-    println(s"\nLoading data from:")
-    println(s"  Matrix: $matrixPath")
-    println(s"  Vector: $vectorPath")
-    
-    val matrix = SmartLoader.loadMatrix(sc, matrixPath).toCOO
-    val vector = SmartLoader.loadVector(sc, vectorPath)
-    
-    println(s"\nMatrix: ${matrix.numNonZeros} non-zeros")
-    println(s"Vector: ${vector.size} elements")
-    
-    // Test all combinations of features
-    val features: Set[OptimizationFeature] = Set(Partitioning, Caching, CSRFormat)
-    val combinations = features.subsets().toSeq.sortBy(_.size)
-    
-    println(s"\nTesting ${combinations.size} combinations of features...")
-    
-    for ((featureSet, idx) <- combinations.zipWithIndex) {
-      val featureNames = if (featureSet.isEmpty) "Baseline (no optimizations)" 
-                        else featureSet.mkString(", ")
-      
-      println(s"\n[${idx + 1}/${combinations.size}] Testing: $featureNames")
-      
-      val times = ArrayBuffer[Double]()
-      
-      for (i <- 1 to iterations) {
+
+    // Check files exist
+    if (!new java.io.File(matrixPath).exists()) {
+      println(s"ERROR: Matrix file not found: $matrixPath")
+      return Map.empty
+    }
+
+    val matrixA = SmartLoader.loadMatrix(sc, matrixPath).toCOO
+    val vectorX = SmartLoader.loadVector(sc, vectorPath)
+
+    println("\nTesting optimization combinations...")
+
+    // Define optimization features to test
+    val features = Seq(
+      Set[String](),                                    // Baseline
+      Set("CoPartitioning"),                            // Co-partitioning
+      Set("InPartitionAgg"),                            // In-partition aggregation
+      Set("CoPartitioning", "InPartitionAgg"),          // Both
+      Set("Balanced"),                                  // Balanced partitioning
+      Set("CSRFormat")                                  // CSR format
+    )
+
+    val results = features.map { featureSet =>
+      println(s"\n--- Testing: ${if (featureSet.isEmpty) "Baseline" else featureSet.mkString(" + ")} ---")
+
+      val times = (1 to iterations).map { i =>
         System.gc()
-        Thread.sleep(500)
-        
+        Thread.sleep(1000)
+
         val start = System.nanoTime()
-        
-        val result = runWithFeatures(matrix, vector, featureSet, sc)
+
+        val result = applyOptimizations(
+          matrixA.entries,
+          vectorX.toIndexValueRDD,
+          featureSet,
+          sc.defaultParallelism * 2
+        )
+
         result.count()
-        
+
         val elapsed = (System.nanoTime() - start) / 1000000.0
-        times += elapsed
-        
-        println(f"  Iteration $i: ${elapsed}%,.2f ms")
+        println(f"  Iteration $i: ${elapsed}%.2f ms")
+        elapsed
       }
-      
-      val avgTime = times.sum / iterations
-      val stdDev = calculateStdDev(times, avgTime)
-      
-      results(featureSet) = avgTime
-      
-      println(f"  Average: ${avgTime}%,.2f ms ± ${stdDev}%.2f ms")
-    }
-    
-    // Print summary
-    printAblationSummary(results.toMap)
-    
-    results.toMap
+
+      val avgTime = times.sum / times.length
+      println(f"  Average: ${avgTime}%.2f ms")
+
+      (featureSet, avgTime)
+    }.toMap
+
+    printAblationSummary(results)
+
+    results
   }
-  
-  private def runWithFeatures(
-    matrix: SparseMatrixCOO,
-    vector: Vector,
-    features: Set[OptimizationFeature],
-    sc: SparkContext
+
+  private def applyOptimizations(
+    matrixA: RDD[COOEntry],
+    vectorX: RDD[(Int, Double)],
+    features: Set[String],
+    numPartitions: Int
   ): RDD[(Int, Double)] = {
-    
-    var matrixData = matrix.entries
-    var vectorData = vector.toIndexValueRDD
-    
-    // Apply partitioning
-    if (features.contains(Partitioning)) {
-      val partitioner = new HashPartitioner(sc.defaultParallelism)
-      matrixData = matrixData
-        .map(e => (e.col, (e.row, e.value)))
-        .partitionBy(partitioner)
-        .map { case (col, (row, value)) => COOEntry(row, col, value) }
-      
-      vectorData = vectorData.partitionBy(partitioner)
-    }
-    
-    // Apply caching
-    if (features.contains(Caching)) {
-      // Unpersist first if already cached
-      matrixData.unpersist(blocking = false)
-      vectorData.unpersist(blocking = false)
-      
-      // Now cache with our desired storage level
-      matrixData = matrixData.persist(StorageLevel.MEMORY_AND_DISK)
-      vectorData = vectorData.persist(StorageLevel.MEMORY_AND_DISK)
-      matrixData.count() // materialize
-      vectorData.count()
-    }
-    
-    // Use CSR format
-    val result = if (features.contains(CSRFormat)) {
-      val csrMatrix = FormatConverter.cooToDistributedCSR(
-        matrixData, matrix.numRows, matrix.numCols
+
+    if (features.isEmpty) {
+      // Baseline - simple join
+      val matrixByCol = matrixA.map(e => (e.col, (e.row, e.value)))
+      val joined = matrixByCol.join(vectorX)
+      joined.map { case (col, ((row, mVal), vVal)) => (row, mVal * vVal) }
+        .reduceByKey(_ + _)
+
+    } else if (features.contains("CSRFormat")) {
+      // CSR format
+      val csrMatrix = FormatConverter.cooToDistributedCSR(matrixA, 
+        matrixA.map(_.row).max() + 1,
+        matrixA.map(_.col).max() + 1
       )
-      MultiplicationOps.csrMatrixDenseVector(csrMatrix, vectorData)
+      MultiplicationOps.csrMatrixDenseVector(csrMatrix, vectorX)
+
+    } else if (features.contains("Balanced")) {
+      // Balanced partitioning
+      AdaptiveOps.balancedSpMV(matrixA, vectorX)
+
+    } else if (features.contains("CoPartitioning") && features.contains("InPartitionAgg")) {
+      // Both optimizations
+      AdaptiveOps.efficientSpMV(matrixA, vectorX)
+
+    } else if (features.contains("CoPartitioning")) {
+      // Just co-partitioning
+      AdaptiveOps.mapSideJoinSpMV(matrixA, vectorX)
+
+    } else if (features.contains("InPartitionAgg")) {
+      // Just in-partition aggregation
+      val partitioner = new HashPartitioner(numPartitions)
+      val matrixByCol = matrixA.map(e => (e.col, (e.row, e.value))).partitionBy(partitioner)
+      val vectorPartitioned = vectorX.partitionBy(partitioner)
+
+      matrixByCol.join(vectorPartitioned).mapPartitions { partition =>
+        val accumulator = scala.collection.mutable.HashMap[Int, Double]()
+        partition.foreach { case (col, ((row, mVal), vVal)) =>
+          accumulator(row) = accumulator.getOrElse(row, 0.0) + mVal * vVal
+        }
+        accumulator.iterator
+      }.reduceByKey(_ + _)
+
     } else {
-      MultiplicationOps.sparseMatrixDenseVector(matrixData, vectorData)
+      // Fallback
+      MultiplicationOps.sparseMatrixDenseVector(matrixA, vectorX)
     }
-    
-    // Cleanup
-    if (features.contains(Caching)) {
-      matrixData.unpersist(blocking = false)
-      vectorData.unpersist(blocking = false)
-    }
-    
-    result
   }
-  
-  private def printAblationSummary(results: Map[Set[OptimizationFeature], Double]): Unit = {
+
+  private def printAblationSummary(results: Map[Set[String], Double]): Unit = {
     println("\n" + "="*80)
     println("ABLATION STUDY SUMMARY")
     println("="*80)
-    
-    val sorted = results.toSeq.sortBy(_._2)
-    val baseline = results.find(_._1.isEmpty).map(_._2).getOrElse(sorted.head._2)
-    
-    println("\n| Rank | Features | Time (ms) | vs Baseline | vs Best |")
-    println("|------|----------|-----------|-------------|---------|")
-    
-    sorted.zipWithIndex.foreach { case ((features, time), idx) =>
-      val featureStr = if (features.isEmpty) "None (Baseline)" 
-                      else features.mkString(", ")
-      val vsBaseline = baseline / time
-      val vsBest = sorted.head._2 / time
-      
-      val rankSymbol = if (idx == 0) "🥇" else if (idx == 1) "🥈" else if (idx == 2) "🥉" else s"${idx + 1}"
-      
-      println(f"| $rankSymbol | $featureStr%-30s | ${time}%,.2f | ${vsBaseline}%.2fx | ${vsBest}%.2fx |")
+
+    val baseline = results.get(Set.empty).getOrElse(0.0)
+
+    println("\n| Configuration | Time (ms) | vs Baseline |")
+    println("|---------------|-----------|-------------|")
+
+    results.toSeq.sortBy(_._2).foreach { case (features, time) =>
+      val improvement = if (baseline > 0) ((baseline - time) / baseline) * 100 else 0.0
+      val name = if (features.isEmpty) "Baseline" else features.mkString(" + ")
+      println(f"| $name%-30s | ${time}%9.2f | ${improvement}%+10.1f%% |")
     }
-    
-    println("\n### Key Findings:")
-    
-    // Find best single optimization
-    val singleOptimizations = results.filter(_._1.size == 1)
-    if (singleOptimizations.nonEmpty) {
-      val bestSingle = singleOptimizations.minBy(_._2)
-      val improvement = ((baseline - bestSingle._2) / baseline) * 100
-      println(f"- Best single optimization: ${bestSingle._1.head} (${improvement}%+.1f%% improvement)")
-    }
-    
-    // Find best combination
-    val bestOverall = sorted.head
-    val overallImprovement = ((baseline - bestOverall._2) / baseline) * 100
-    val features = if (bestOverall._1.isEmpty) "None" else bestOverall._1.mkString(" + ")
-    println(f"- Best overall: $features (${overallImprovement}%+.1f%% improvement)")
-    
-    // Check for diminishing returns
-    val allOptimizations = results.find(_._1 == Set(Partitioning, Caching, CSRFormat))
-    if (allOptimizations.isDefined) {
-      val allOptTime = allOptimizations.get._2
-      val allOptImprovement = ((baseline - allOptTime) / baseline) * 100
-      println(f"- All optimizations combined: ${allOptImprovement}%+.1f%% improvement")
-    }
-  }
-  
-  private def calculateStdDev(values: Seq[Double], mean: Double): Double = {
-    if (values.length <= 1) return 0.0
-    val variance = values.map(v => math.pow(v - mean, 2)).sum / (values.length - 1)
-    math.sqrt(variance)
+
+    val best = results.minBy(_._2)
+    val bestImprovement = if (baseline > 0) ((baseline - best._2) / baseline) * 100 else 0.0
+
+    println(f"\nBest configuration: ${if (best._1.isEmpty) "Baseline" else best._1.mkString(" + ")}")
+    println(f"Improvement: ${bestImprovement}%+.1f%%")
   }
 }
