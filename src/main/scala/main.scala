@@ -1,6 +1,7 @@
 import org.apache.spark.{SparkConf, SparkContext}
 import engine.storage._
-import engine.operations.MultiplicationOps
+import engine.operations.{MultiplicationOps, FormatSpecificOps}
+import engine.optimization.{AdaptiveOps, OptimizedOps}
 import java.io.File
 
 object Main {
@@ -21,6 +22,7 @@ object Main {
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.driver.memory", params.memory)
       .set("spark.executor.memory", params.memory)
+      .set("spark.sql.shuffle.partitions", params.shufflePartitions.toString)
     
     val sc = new SparkContext(conf)
     sc.setLogLevel(params.logLevel)
@@ -39,6 +41,12 @@ object Main {
       println(s"Input B: ${params.inputB}")
       if (params.outputPath.isDefined) {
         println(s"Output: ${params.outputPath.get}")
+      }
+      if (params.strategy.isDefined) {
+        println(s"Strategy: ${params.strategy.get}")
+      }
+      if (params.format.isDefined) {
+        println(s"Format: ${params.format.get}")
       }
       println()
       
@@ -182,36 +190,90 @@ object Main {
     
     println("\n--- MATRIX x VECTOR MULTIPLICATION ---\n")
     
-    // Load matrix (smart format detection)
-    val matrix = SmartLoader.loadMatrix(sc, params.inputA)
+    // Load matrix
+    val matrixCOO = COOLoader.loadSparseMatrix(sc, params.inputA)
+    val (numRows, numCols) = COOLoader.getMatrixDimensions(matrixCOO)
     
-    // Load vector (smart format detection)
-    val vector = SmartLoader.loadVector(sc, params.inputB)
+    // Load vector
+    val vectorRDD = params.vectorType match {
+      case VectorType.Sparse =>
+        println("Loading sparse vector...")
+        COOLoader.loadSparseVector(sc, params.inputB).map(e => (e.index, e.value))
+      case VectorType.Dense =>
+        println("Loading dense vector...")
+        COOLoader.loadDenseVectorRDD(sc, params.inputB)
+    }
     
-    println(s"\nMatrix dimensions: ${matrix.numRows} x ${matrix.numCols}")
-    println(s"Vector size: ${vector.size}")
+    val vectorSize = vectorRDD.map(_._1).max() + 1
+    
+    println(s"\nMatrix dimensions: $numRows x $numCols")
+    println(s"Vector size: $vectorSize")
     
     // Verify dimensions
-    if (matrix.numCols != vector.size) {
+    if (numCols != vectorSize) {
       throw new IllegalArgumentException(
-        s"Dimension mismatch: Matrix has ${matrix.numCols} columns " +
-        s"but vector has ${vector.size} elements"
+        s"Dimension mismatch: Matrix has $numCols columns " +
+        s"but vector has $vectorSize elements"
       )
     }
     
-    // Perform multiplication
+    // Perform multiplication based on strategy and format
     println("\nPerforming multiplication...")
     val start = System.nanoTime()
     
-    val result = matrix * vector
+    val resultRDD = (params.format, params.strategy) match {
+      // COO Format operations
+      case (Some(MatrixFormat.COO), Some(Strategy.Baseline)) =>
+        FormatSpecificOps.cooSpMV(matrixCOO, vectorRDD)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.Optimized)) =>
+        OptimizedOps.optimizedSpMV(matrixCOO, vectorRDD)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.Adaptive)) =>
+        AdaptiveOps.adaptiveSpMV(matrixCOO, vectorRDD)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.Efficient)) =>
+        AdaptiveOps.efficientSpMV(matrixCOO, vectorRDD)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.Balanced)) =>
+        AdaptiveOps.balancedSpMV(matrixCOO, vectorRDD)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.MapSideJoin)) =>
+        AdaptiveOps.mapSideJoinSpMV(matrixCOO, vectorRDD)
+      
+      // CSR Format operations
+      case (Some(MatrixFormat.CSR), _) =>
+        println("Converting to CSR format...")
+        val csrMatrix = FormatConverter.cooToDistributedCSR(matrixCOO, numRows, numCols)
+        params.strategy match {
+          case Some(Strategy.Baseline) =>
+            FormatSpecificOps.csrSpMV(csrMatrix, vectorRDD)
+          case Some(Strategy.Optimized) =>
+            AdaptiveOps.csrSpMV(csrMatrix, vectorRDD)
+          case _ =>
+            FormatSpecificOps.csrSpMV(csrMatrix, vectorRDD)
+        }
+      
+      // CSC Format operations
+      case (Some(MatrixFormat.CSC), _) =>
+        println("Converting to CSC format...")
+        val cscMatrix = CSCFormat.cooToDistributedCSC(matrixCOO, numRows, numCols)
+        FormatSpecificOps.cscSpMV(cscMatrix, vectorRDD)
+      
+      // Default: Use adaptive strategy
+      case _ =>
+        MultiplicationOps.sparseMatrixDenseVector(matrixCOO, vectorRDD)
+    }
     
     // Force computation
-    val resultCount = result.entries.count()
+    val resultCount = resultRDD.count()
     
     val elapsed = (System.nanoTime() - start) / 1000000.0
     
     println(f"\nMultiplication complete in ${elapsed}%.2f ms")
     println(s"Result vector has $resultCount non-zero entries")
+    
+    val result = ResultVector(resultRDD, numRows)
     
     // Save if output path specified
     if (params.outputPath.isDefined) {
@@ -230,33 +292,71 @@ object Main {
     println("\n--- MATRIX x MATRIX MULTIPLICATION ---\n")
     
     // Load both matrices
-    val matrixA = SmartLoader.loadMatrix(sc, params.inputA)
-    val matrixB = SmartLoader.loadMatrix(sc, params.inputB)
+    val matrixA = COOLoader.loadSparseMatrix(sc, params.inputA)
+    val matrixB = COOLoader.loadSparseMatrix(sc, params.inputB)
     
-    println(s"\nMatrix A dimensions: ${matrixA.numRows} x ${matrixA.numCols}")
-    println(s"Matrix B dimensions: ${matrixB.numRows} x ${matrixB.numCols}")
+    val (rowsA, colsA) = COOLoader.getMatrixDimensions(matrixA)
+    val (rowsB, colsB) = COOLoader.getMatrixDimensions(matrixB)
+    
+    println(s"\nMatrix A dimensions: $rowsA x $colsA")
+    println(s"Matrix B dimensions: $rowsB x $colsB")
     
     // Verify dimensions
-    if (matrixA.numCols != matrixB.numRows) {
+    if (colsA != rowsB) {
       throw new IllegalArgumentException(
-        s"Dimension mismatch: Matrix A has ${matrixA.numCols} columns " +
-        s"but Matrix B has ${matrixB.numRows} rows"
+        s"Dimension mismatch: Matrix A has $colsA columns " +
+        s"but Matrix B has $rowsB rows"
       )
     }
     
-    // Perform multiplication
+    // Perform multiplication based on strategy and format
     println("\nPerforming multiplication...")
     val start = System.nanoTime()
     
-    val result = matrixA * matrixB
+    val resultCOO = (params.format, params.strategy) match {
+      // COO Format operations
+      case (Some(MatrixFormat.COO), Some(Strategy.Baseline)) =>
+        FormatSpecificOps.cooSpMMSparse(matrixA, matrixB)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.Optimized)) =>
+        OptimizedOps.optimizedSpMM(matrixA, matrixB)
+      
+      case (Some(MatrixFormat.COO), Some(Strategy.BlockPartitioned)) =>
+        val blockSize = params.blockSize.getOrElse(1000)
+        OptimizedOps.blockPartitionedSpMM(matrixA, matrixB, blockSize)
+      
+      // CSR Format operations
+      case (Some(MatrixFormat.CSR), _) =>
+        println("Converting to CSR format...")
+        val csrA = FormatConverter.cooToDistributedCSR(matrixA, rowsA, colsA)
+        val csrB = FormatConverter.cooToDistributedCSR(matrixB, rowsB, colsB)
+        FormatSpecificOps.csrSpMMSparse(csrA, csrB)
+      
+      // CSC Format operations
+      case (Some(MatrixFormat.CSC), _) =>
+        println("Converting to CSC format...")
+        val cscA = CSCFormat.cooToDistributedCSC(matrixA, rowsA, colsA)
+        val cscB = CSCFormat.cooToDistributedCSC(matrixB, rowsB, colsB)
+        FormatSpecificOps.cscSpMMSparse(cscA, cscB)
+      
+      // Default
+      case _ =>
+        MultiplicationOps.sparseMatrixSparseMatrix(matrixA, matrixB)
+    }
     
     // Force computation
-    val resultCount = result.entries.count()
+    val resultCount = resultCOO.count()
     
     val elapsed = (System.nanoTime() - start) / 1000000.0
     
     println(f"\nMultiplication complete in ${elapsed}%.2f ms")
-    println(s"Result matrix has $resultCount entries")
+    println(s"Result matrix has $resultCount non-zero entries")
+    
+    val result = ResultMatrix(
+      resultCOO.map(e => (e.row, e.col, e.value)),
+      rowsA,
+      colsB
+    )
     
     // Save if output path specified
     if (params.outputPath.isDefined) {
@@ -275,18 +375,22 @@ object Main {
     println("\n--- VECTOR x MATRIX MULTIPLICATION ---\n")
     println("Note: Computing as (M^T x v)^T where M = inputB, v = inputA\n")
     
-    // Load vector and matrix
-    val vector = SmartLoader.loadVector(sc, params.inputA)
-    val matrix = SmartLoader.loadMatrix(sc, params.inputB)
+    // Load vector
+    val vectorRDD = COOLoader.loadDenseVectorRDD(sc, params.inputA)
+    val vectorSize = COOLoader.getVectorSize(vectorRDD)
     
-    println(s"\nVector size: ${vector.size}")
-    println(s"Matrix dimensions: ${matrix.numRows} x ${matrix.numCols}")
+    // Load matrix
+    val matrix = COOLoader.loadSparseMatrix(sc, params.inputB)
+    val (numRows, numCols) = COOLoader.getMatrixDimensions(matrix)
+    
+    println(s"\nVector size: $vectorSize")
+    println(s"Matrix dimensions: $numRows x $numCols")
     
     // Verify dimensions
-    if (vector.size != matrix.numRows) {
+    if (vectorSize != numRows) {
       throw new IllegalArgumentException(
-        s"Dimension mismatch: Vector has ${vector.size} elements " +
-        s"but matrix has ${matrix.numRows} rows"
+        s"Dimension mismatch: Vector has $vectorSize elements " +
+        s"but matrix has $numRows rows"
       )
     }
     
@@ -294,16 +398,21 @@ object Main {
     println("\nPerforming multiplication...")
     val start = System.nanoTime()
     
-    val matrixTransposed = matrix.transpose
-    val result = matrixTransposed * vector
+    // Transpose matrix: swap rows and columns
+    val matrixTransposed = matrix.map(e => COOEntry(e.col, e.row, e.value))
+    
+    // Now perform SpMV with transposed matrix
+    val resultRDD = MultiplicationOps.sparseMatrixDenseVector(matrixTransposed, vectorRDD)
     
     // Force computation
-    val resultCount = result.entries.count()
+    val resultCount = resultRDD.count()
     
     val elapsed = (System.nanoTime() - start) / 1000000.0
     
     println(f"\nMultiplication complete in ${elapsed}%.2f ms")
     println(s"Result vector has $resultCount non-zero entries")
+    
+    val result = ResultVector(resultRDD, numCols)
     
     // Save if output path specified
     if (params.outputPath.isDefined) {
@@ -358,6 +467,33 @@ object Main {
     println(f"Min absolute value (non-zero): [${minNonZero._1}, ${minNonZero._2}] = ${minNonZero._3}%.6f")
   }
   
+  // Strategy options
+  sealed trait Strategy
+  object Strategy {
+    case object Baseline extends Strategy
+    case object Optimized extends Strategy
+    case object Adaptive extends Strategy
+    case object Efficient extends Strategy
+    case object Balanced extends Strategy
+    case object MapSideJoin extends Strategy
+    case object BlockPartitioned extends Strategy
+  }
+  
+  // Matrix format options
+  sealed trait MatrixFormat
+  object MatrixFormat {
+    case object COO extends MatrixFormat
+    case object CSR extends MatrixFormat
+    case object CSC extends MatrixFormat
+  }
+  
+  // Vector type options
+  sealed trait VectorType
+  object VectorType {
+    case object Dense extends VectorType
+    case object Sparse extends VectorType
+  }
+  
   case class Config(
     inputA: String,
     inputB: String,
@@ -366,7 +502,12 @@ object Main {
     memory: String = "4g",
     logLevel: String = "WARN",
     showPreview: Boolean = true,
-    showStats: Boolean = true
+    showStats: Boolean = true,
+    strategy: Option[Strategy] = None,
+    format: Option[MatrixFormat] = None,
+    vectorType: VectorType = VectorType.Dense,
+    blockSize: Option[Int] = None,
+    shufflePartitions: Int = 200
   )
   
   def parseArgs(args: Array[String]): Option[Config] = {
@@ -383,6 +524,11 @@ object Main {
     var logLevel = "WARN"
     var showPreview = true
     var showStats = true
+    var strategy: Option[Strategy] = None
+    var format: Option[MatrixFormat] = None
+    var vectorType: VectorType = VectorType.Dense
+    var blockSize: Option[Int] = None
+    var shufflePartitions = 200
     
     var i = 0
     while (i < args.length) {
@@ -441,6 +587,87 @@ object Main {
             return None
           }
           
+        case "--strategy" =>
+          if (i + 1 < args.length) {
+            strategy = args(i + 1).toLowerCase match {
+              case "baseline" => Some(Strategy.Baseline)
+              case "optimized" => Some(Strategy.Optimized)
+              case "adaptive" => Some(Strategy.Adaptive)
+              case "efficient" => Some(Strategy.Efficient)
+              case "balanced" => Some(Strategy.Balanced)
+              case "mapsidejoin" => Some(Strategy.MapSideJoin)
+              case "blockpartitioned" => Some(Strategy.BlockPartitioned)
+              case other =>
+                println(s"ERROR: Unknown strategy: $other")
+                return None
+            }
+            i += 2
+          } else {
+            println("ERROR: Missing value for --strategy")
+            return None
+          }
+          
+        case "--format" =>
+          if (i + 1 < args.length) {
+            format = args(i + 1).toUpperCase match {
+              case "COO" => Some(MatrixFormat.COO)
+              case "CSR" => Some(MatrixFormat.CSR)
+              case "CSC" => Some(MatrixFormat.CSC)
+              case other =>
+                println(s"ERROR: Unknown format: $other")
+                return None
+            }
+            i += 2
+          } else {
+            println("ERROR: Missing value for --format")
+            return None
+          }
+          
+        case "--vector-type" =>
+          if (i + 1 < args.length) {
+            vectorType = args(i + 1).toLowerCase match {
+              case "dense" => VectorType.Dense
+              case "sparse" => VectorType.Sparse
+              case other =>
+                println(s"ERROR: Unknown vector type: $other")
+                return None
+            }
+            i += 2
+          } else {
+            println("ERROR: Missing value for --vector-type")
+            return None
+          }
+          
+        case "--block-size" =>
+          if (i + 1 < args.length) {
+            try {
+              blockSize = Some(args(i + 1).toInt)
+              i += 2
+            } catch {
+              case _: NumberFormatException =>
+                println("ERROR: --block-size must be an integer")
+                return None
+            }
+          } else {
+            println("ERROR: Missing value for --block-size")
+            return None
+          }
+          
+        case "--shuffle-partitions" =>
+          if (i + 1 < args.length) {
+            try {
+              shufflePartitions = args(i + 1).toInt
+              i += 2
+            } catch {
+              case _: NumberFormatException =>
+                println("ERROR: --shuffle-partitions must be an integer")
+                return None
+            }
+          } else {
+            println("ERROR: Missing value for --shuffle-partitions")
+            return None
+          }
+          
         case "--no-preview" =>
           showPreview = false
           i += 1
@@ -479,7 +706,12 @@ object Main {
       memory = memory,
       logLevel = logLevel,
       showPreview = showPreview,
-      showStats = showStats
+      showStats = showStats,
+      strategy = strategy,
+      format = format,
+      vectorType = vectorType,
+      blockSize = blockSize,
+      shufflePartitions = shufflePartitions
     ))
   }
   
@@ -501,6 +733,13 @@ object Main {
       |  --master <url>         Spark master URL (default: local[*])
       |  --memory <size>        Memory per executor (default: 4g)
       |  --log-level <level>    Spark log level: ERROR, WARN, INFO, DEBUG (default: WARN)
+      |  --strategy <name>      Multiplication strategy:
+      |                         baseline, optimized, adaptive, efficient, balanced,
+      |                         mapsidejoin, blockpartitioned
+      |  --format <format>      Matrix format: COO, CSR, CSC (default: COO)
+      |  --vector-type <type>   Vector type: dense, sparse (default: dense)
+      |  --block-size <size>    Block size for block-partitioned strategy (default: 1000)
+      |  --shuffle-partitions <n> Number of shuffle partitions (default: 200)
       |  --no-preview           Disable result preview
       |  --no-stats             Disable result statistics
       |  -h, --help             Show this help message
@@ -514,24 +753,38 @@ object Main {
       |  Matrix CSV:  row,col,value
       |  Vector CSV:  index,value
       |
+      |Strategies:
+      |  baseline               Simple implementation without optimizations
+      |  optimized              Standard optimizations (co-partitioning, in-partition agg)
+      |  adaptive               Automatically chooses best strategy based on data size
+      |  efficient              Efficient SpMV with in-partition aggregation
+      |  balanced               Balanced partitioning for better load distribution
+      |  mapsidejoin            Map-side join for co-located data
+      |  blockpartitioned       Block-based multiplication for large matrices
+      |
       |Examples:
-      |  # Matrix-vector multiplication
+      |  # Basic matrix-vector multiplication
       |  spark-submit main.jar matrix.csv vector.csv
       |  
-      |  # Matrix-matrix multiplication with output
-      |  spark-submit main.jar -a matrixA.csv -b matrixB.csv -o result/
+      |  # Matrix-matrix with optimized strategy
+      |  spark-submit main.jar --strategy optimized -a matrixA.csv -b matrixB.csv -o result/
+      |  
+      |  # CSR format with adaptive strategy
+      |  spark-submit main.jar --format CSR --strategy adaptive matrix.csv vector.csv
+      |  
+      |  # Block-partitioned for large matrices
+      |  spark-submit main.jar --strategy blockpartitioned --block-size 500 \
+      |               largeA.csv largeB.csv -o output/
       |  
       |  # With custom Spark settings
-      |  spark-submit main.jar --master spark://host:7077 --memory 8g matrix.csv vector.csv
-      |  
-      |  # Using synthetic data
-      |  spark-submit main.jar synthetic-data/sparse_matrix_1000x1000.csv \
-      |                        synthetic-data/dense_vector_1000.csv -o output/result
+      |  spark-submit main.jar --master spark://host:7077 --memory 8g \
+      |               --shuffle-partitions 400 matrix.csv vector.csv
       |
       |Notes:
       |  - All operations use distributed computation (no collect() calls)
-      |  - SmartLoader automatically detects sparse vs dense representation
+      |  - Automatic format detection based on sparsity
       |  - Output is written as distributed files in the specified directory
+      |  - Strategies can significantly impact performance on large datasets
       |""".stripMargin)
   }
   
