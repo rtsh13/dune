@@ -24,6 +24,10 @@ project/.bloop/
 
 .DS_Store
 
+/venv
+**/venv
+/interactiveResults
+/realworldbenchmarks/results
 
 
 # Ignore everything in synthetic-data directory
