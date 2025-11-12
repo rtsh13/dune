@@ -1,6 +1,6 @@
 echo "=== Cleaning previous results ==="
 rm -rf interactiveResults
-echo "✓ Done"
+echo "Done"
 echo
 
 echo "=== Compiling project ==="
