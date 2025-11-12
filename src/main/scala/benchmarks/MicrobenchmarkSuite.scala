@@ -5,7 +5,9 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
 import engine.storage._
 import engine.storage.CSCFormat._
-import engine.operations.FormatSpecificOps
+import engine.operations.CSCOperations
+import engine.operations.CSROperations
+import engine.operations.COOOperations
 import engine.optimization.OptimizationStrategies
 import scala.collection.mutable.ArrayBuffer
 
@@ -73,18 +75,18 @@ object MicrobenchmarkSuite {
       println("\n### Testing SpMV ###")
       
       val cooTime = benchmarkOperation("COO SpMV", iterations) {
-        FormatSpecificOps.cooSpMV(cooMatrix.entries, vector.toIndexValueRDD)
+        COOOperations.spMV(cooMatrix.entries, vector.toIndexValueRDD)
       }
       formatResults += FormatResult("COO", "SpMV", dataset.size, cooTime, true)
       scalingResults += ((dataset.size, cooTime))
 
       val csrTime = benchmarkOperation("CSR SpMV", iterations) {
-        FormatSpecificOps.csrSpMV(csrMatrix.rows, vector.toIndexValueRDD)
+        CSROperations.spMV(csrMatrix.rows, vector.toIndexValueRDD)
       }
       formatResults += FormatResult("CSR", "SpMV", dataset.size, csrTime, true)
 
       val cscTime = benchmarkOperation("CSC SpMV", iterations) {
-        FormatSpecificOps.cscSpMV(cscMatrix, vector.toIndexValueRDD)
+        CSCOperations.spMV(cscMatrix, vector.toIndexValueRDD)
       }
       formatResults += FormatResult("CSC", "SpMV", dataset.size, cscTime, true)
 
@@ -122,7 +124,7 @@ object MicrobenchmarkSuite {
             
             if (sparseVectorRDD != null) {
               val cooSparseTime = benchmarkOperation("COO SpMV-Sparse", iterations) {
-                FormatSpecificOps.cooSpMVSparse(cooMatrix.entries, sparseVectorRDD)
+                COOOperations.spMVSparse(cooMatrix.entries, sparseVectorRDD)
               }
               formatResults += FormatResult("COO", "SpMV-Sparse", dataset.size, cooSparseTime, true)
             }
@@ -135,7 +137,7 @@ object MicrobenchmarkSuite {
         if (dataset.size <= 500) {
           println("\n### Testing SpMM ###")
           val cooSpmmTime = benchmarkOperation("COO SpMM", iterations) {
-            FormatSpecificOps.cooSpMMSparse(cooMatrix.entries, cooMatrix.entries)
+            COOOperations.spMMSparse(cooMatrix.entries, cooMatrix.entries)
           }
           formatResults += FormatResult("COO", "SpMM", dataset.size, cooSpmmTime, true)
         }
