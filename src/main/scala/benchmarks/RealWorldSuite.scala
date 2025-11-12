@@ -8,11 +8,10 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.PrintWriter
 
 /** Comprehensive End-to-End System Evaluation
-    1. PageRank (iterative algorithm) 
-    2. Recommendation System (collaborative filtering) 
-    3. Graph Analytics (multi-hop neighbor queries) 
-    4. Scientific Computing (power iteration method)
-    */
+  * \1. PageRank (iterative algorithm) 2. Recommendation System (collaborative
+  * filtering) 3. Graph Analytics (multi-hop neighbor queries) 4. Scientific
+  * Computing (power iteration method)
+  */
 object ComprehensiveEndToEndBenchmarks {
   case class EndToEndResult(
       useCase: String,
