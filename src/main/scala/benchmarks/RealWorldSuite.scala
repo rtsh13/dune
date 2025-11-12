@@ -1,4 +1,4 @@
-package realworldbenchmarks
+package benchmarks
 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
@@ -8,17 +8,11 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.PrintWriter
 
 /** Comprehensive End-to-End System Evaluation
-  *
-  * Tests complete workflows on realistic applications:
-  *   1. PageRank (iterative algorithm) 2. Recommendation System (collaborative
-  *      filtering) 3. Graph Analytics (multi-hop neighbor queries) 4.
-  *      Scientific Computing (power iteration method)
-  *
-  * Compares against:
-  *   - Spark DataFrame (SQL-based operations)
-  *   - GraphX (for graph workloads)
-  *   - MLlib (for ML workloads where applicable)
-  */
+    1. PageRank (iterative algorithm) 
+    2. Recommendation System (collaborative filtering) 
+    3. Graph Analytics (multi-hop neighbor queries) 
+    4. Scientific Computing (power iteration method)
+    */
 object ComprehensiveEndToEndBenchmarks {
   case class EndToEndResult(
       useCase: String,
@@ -30,11 +24,6 @@ object ComprehensiveEndToEndBenchmarks {
       iterations: Int
   )
 
-  /** Use Case 1: PageRank Algorithm Real-world application: Web page ranking,
-    * citation networks
-    *
-    * Iteratively computes importance scores via matrix-vector multiplication
-    */
   def benchmarkPageRank(
       sc: SparkContext,
       spark: SparkSession,
@@ -43,13 +32,10 @@ object ComprehensiveEndToEndBenchmarks {
       iterations: Int = 10
   ): EndToEndResult = {
 
-    println("\n" + "=" * 80)
-    println("USE CASE 1: PAGERANK ALGORITHM")
-    println("=" * 80)
+    println("\nUSE CASE 1: PAGERANK ALGORITHM\n")
     println(s"Dataset: ${matrixSize}x${matrixSize} web graph")
     println(s"Iterations: $iterations")
 
-    // Load transition matrix (web graph)
     val matrix = SmartLoader.loadMatrix(
       sc,
       s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv"
@@ -58,20 +44,16 @@ object ComprehensiveEndToEndBenchmarks {
     println(s"\nTransition matrix: ${matrix.numRows}x${matrix.numCols}")
     println(s"Non-zeros: ${matrix.numNonZeros} (edges in graph)")
 
-    // Initialize PageRank vector (uniform distribution)
     var rankVector = sc.parallelize(
       (0 until matrixSize).map(i => (i, 1.0 / matrixSize))
     )
 
-    // Damping factor (standard PageRank)
     val dampingFactor = 0.85
 
-    // === CUSTOM IMPLEMENTATION ===
     println("\n--- Custom Sparse Matrix Engine ---")
     val customStart = System.nanoTime()
 
     for (i <- 1 to iterations) {
-      // PageRank update: rank = d * (M^T * rank) + (1-d)/N
       val result = matrix * DenseVectorRDD(rankVector, matrixSize)
 
       rankVector = result.entries.map { case (idx, value) =>
@@ -87,9 +69,9 @@ object ComprehensiveEndToEndBenchmarks {
     val customTime = (System.nanoTime() - customStart) / 1000000.0
 
     println(f"\nCustom implementation:")
-    println(f"  Total time: ${customTime}%.2f ms")
-    println(f"  Per iteration: ${customTime / iterations}%.2f ms")
-    println(f"  Final ranks: $finalCount values")
+    println(f"Total time: ${customTime}%.2f ms")
+    println(f"Per iteration: ${customTime / iterations}%.2f ms")
+    println(f"Final ranks: $finalCount values")
 
     // === BASELINE: DATAFRAME IMPLEMENTATION ===
     println("\n--- Baseline: Spark DataFrame ---")
@@ -102,16 +84,13 @@ object ComprehensiveEndToEndBenchmarks {
     )
 
     println(f"\nDataFrame implementation:")
-    println(f"  Total time: ${baselineTime}%.2f ms")
-    println(f"  Per iteration: ${baselineTime / iterations}%.2f ms")
+    println(f"Total time: ${baselineTime}%.2f ms")
+    println(f"Per iteration: ${baselineTime / iterations}%.2f ms")
 
-    // === COMPARISON ===
     val speedup = baselineTime / customTime
     val throughput = (matrixSize.toLong * iterations) / (customTime / 1000.0)
 
-    println("\n" + "=" * 80)
     println("PAGERANK RESULTS")
-    println("=" * 80)
     println(f"Custom Engine:    ${customTime}%,10.2f ms")
     println(f"DataFrame:        ${baselineTime}%,10.2f ms")
     println(f"Speedup:          ${speedup}%10.2fx")
@@ -181,11 +160,6 @@ object ComprehensiveEndToEndBenchmarks {
     elapsed
   }
 
-  /** Use Case 2: Collaborative Filtering (Recommendation System) Real-world
-    * application: Netflix recommendations, Amazon product suggestions
-    *
-    * Computes user-item similarity via matrix multiplication
-    */
   def benchmarkCollaborativeFiltering(
       sc: SparkContext,
       spark: SparkSession,
@@ -194,12 +168,9 @@ object ComprehensiveEndToEndBenchmarks {
       dataDir: String
   ): EndToEndResult = {
 
-    println("\n" + "=" * 80)
     println("USE CASE 2: COLLABORATIVE FILTERING")
-    println("=" * 80)
     println(s"Users: $numUsers, Items: $numItems")
 
-    // Load user-item rating matrix
     val ratingMatrix = SmartLoader.loadMatrix(
       sc,
       s"$dataDir/sparse_matrix_${numUsers}x${numItems}.csv"
@@ -208,26 +179,19 @@ object ComprehensiveEndToEndBenchmarks {
     println(s"\nRating matrix: ${ratingMatrix.numRows}x${ratingMatrix.numCols}")
     println(s"Ratings: ${ratingMatrix.numNonZeros}")
 
-    // === CUSTOM IMPLEMENTATION ===
     println("\n--- Custom Implementation ---")
     println("Computing item-item similarity matrix...")
 
     val customStart = System.nanoTime()
-
-    // Transpose to get item-user matrix
     val itemUserMatrix = ratingMatrix.transpose.toCOO
-
-    // Compute item-item similarity: I^T × I
     val similarityMatrix = itemUserMatrix * itemUserMatrix.toCOO
-
     val numSimilarities = similarityMatrix.entries.count()
     val customTime = (System.nanoTime() - customStart) / 1000000.0
 
     println(f"\nCustom implementation:")
-    println(f"  Time: ${customTime}%.2f ms")
-    println(f"  Similarities computed: $numSimilarities")
+    println(f"Time: ${customTime}%.2f ms")
+    println(f"Similarities computed: $numSimilarities")
 
-    // === BASELINE: DATAFRAME ===
     println("\n--- Baseline: DataFrame ---")
     val baselineTime = benchmarkCollaborativeFilteringDataFrame(
       spark,
@@ -235,15 +199,12 @@ object ComprehensiveEndToEndBenchmarks {
     )
 
     println(f"\nDataFrame implementation:")
-    println(f"  Time: ${baselineTime}%.2f ms")
+    println(f"Time: ${baselineTime}%.2f ms")
 
-    // === COMPARISON ===
     val speedup = baselineTime / customTime
     val throughput = numSimilarities.toDouble / (customTime / 1000.0)
 
-    println("\n" + "=" * 80)
     println("COLLABORATIVE FILTERING RESULTS")
-    println("=" * 80)
     println(f"Custom Engine:    ${customTime}%,10.2f ms")
     println(f"DataFrame:        ${baselineTime}%,10.2f ms")
     println(f"Speedup:          ${speedup}%10.2fx")
@@ -275,7 +236,6 @@ object ComprehensiveEndToEndBenchmarks {
 
     val start = System.nanoTime()
 
-    // Self-join to compute item-item similarities
     val similarities = ratingsDF
       .as("r1")
       .join(ratingsDF.as("r2"), $"r1.user" === $"r2.user")
@@ -296,11 +256,6 @@ object ComprehensiveEndToEndBenchmarks {
     elapsed
   }
 
-  /** Use Case 3: Multi-hop Graph Query Real-world application: Social network
-    * analysis, friend-of-friend queries
-    *
-    * Computes k-hop neighbors via repeated matrix multiplication
-    */
   def benchmarkGraphAnalytics(
       sc: SparkContext,
       spark: SparkSession,
@@ -308,10 +263,7 @@ object ComprehensiveEndToEndBenchmarks {
       dataDir: String,
       hops: Int = 3
   ): EndToEndResult = {
-
-    println("\n" + "=" * 80)
     println("USE CASE 3: MULTI-HOP GRAPH QUERY")
-    println("=" * 80)
     println(s"Graph size: ${graphSize} nodes")
     println(s"Computing ${hops}-hop neighbors")
 
@@ -325,8 +277,6 @@ object ComprehensiveEndToEndBenchmarks {
 
     println(s"\nAdjacency matrix: ${adjMatrix.numRows}x${adjMatrix.numCols}")
     println(s"Edges: ${adjMatrix.numNonZeros}")
-
-    // === CUSTOM IMPLEMENTATION ===
     println("\n--- Custom Implementation ---")
 
     val customStart = System.nanoTime()
@@ -341,10 +291,9 @@ object ComprehensiveEndToEndBenchmarks {
     val customTime = (System.nanoTime() - customStart) / 1000000.0
 
     println(f"\nCustom implementation:")
-    println(f"  Time: ${customTime}%.2f ms")
-    println(f"  ${hops}-hop reachable pairs: $totalReachable")
+    println(f"Time: ${customTime}%.2f ms")
+    println(f"${hops}-hop reachable pairs: $totalReachable")
 
-    // === BASELINE: DATAFRAME ===
     println("\n--- Baseline: DataFrame ---")
     val baselineTime = benchmarkGraphAnalyticsDataFrame(
       spark,
@@ -353,15 +302,12 @@ object ComprehensiveEndToEndBenchmarks {
     )
 
     println(f"\nDataFrame implementation:")
-    println(f"  Time: ${baselineTime}%.2f ms")
+    println(f"Time: ${baselineTime}%.2f ms")
 
-    // === COMPARISON ===
     val speedup = baselineTime / customTime
     val throughput = totalReachable.toDouble / (customTime / 1000.0)
 
-    println("\n" + "=" * 80)
     println("GRAPH ANALYTICS RESULTS")
-    println("=" * 80)
     println(f"Custom Engine:    ${customTime}%,10.2f ms")
     println(f"DataFrame:        ${baselineTime}%,10.2f ms")
     println(f"Speedup:          ${speedup}%10.2fx")
@@ -394,16 +340,15 @@ object ComprehensiveEndToEndBenchmarks {
 
     val start = System.nanoTime()
 
-    var paths = edgesDF.select($"src", $"dst") // Create initial copy
+    var paths = edgesDF.select($"src", $"dst")
 
     for (h <- 2 to hops) {
-      // Alias both DataFrames to avoid ambiguity
       val pathsAlias = paths.alias("p")
       val edgesAlias = edgesDF.alias("e")
 
       paths = pathsAlias
-        .join(edgesAlias, $"p.dst" === $"e.src") // ✓ Use qualified names
-        .select($"p.src", $"e.dst") // ✓ Use qualified names
+        .join(edgesAlias, $"p.dst" === $"e.src")
+        .select($"p.src", $"e.dst")
         .distinct()
         .cache()
 
@@ -418,11 +363,6 @@ object ComprehensiveEndToEndBenchmarks {
     elapsed
   }
 
-  /** Use Case 4: Power Iteration Method Real-world application: Principal
-    * Component Analysis, eigenvalue computation
-    *
-    * Iteratively computes dominant eigenvector
-    */
   def benchmarkPowerIteration(
       sc: SparkContext,
       spark: SparkSession,
@@ -430,10 +370,7 @@ object ComprehensiveEndToEndBenchmarks {
       dataDir: String,
       iterations: Int = 20
   ): EndToEndResult = {
-
-    println("\n" + "=" * 80)
     println("USE CASE 4: POWER ITERATION METHOD")
-    println("=" * 80)
     println(s"Matrix size: ${matrixSize}x${matrixSize}")
     println(s"Iterations: $iterations")
 
@@ -450,16 +387,13 @@ object ComprehensiveEndToEndBenchmarks {
       (0 until matrixSize).map(i => (i, random.nextGaussian()))
     )
 
-    // === CUSTOM IMPLEMENTATION ===
     println("\n--- Custom Implementation ---")
 
     val customStart = System.nanoTime()
 
     for (i <- 1 to iterations) {
-      // v = A * v
       val result = matrix * DenseVectorRDD(vector, matrixSize)
 
-      // Normalize
       val norm = math.sqrt(
         result.entries.map { case (_, v) => v * v }.reduce(_ + _)
       )
@@ -467,7 +401,7 @@ object ComprehensiveEndToEndBenchmarks {
       vector = result.entries.map { case (idx, v) => (idx, v / norm) }
 
       if (i % 5 == 0) {
-        println(f"  Iteration $i/${iterations} complete")
+        println(f"Iteration $i/${iterations} complete")
       }
     }
 
@@ -475,10 +409,9 @@ object ComprehensiveEndToEndBenchmarks {
     val customTime = (System.nanoTime() - customStart) / 1000000.0
 
     println(f"\nCustom implementation:")
-    println(f"  Time: ${customTime}%.2f ms")
-    println(f"  Per iteration: ${customTime / iterations}%.2f ms")
+    println(f"Time: ${customTime}%.2f ms")
+    println(f"Per iteration: ${customTime / iterations}%.2f ms")
 
-    // === BASELINE: DATAFRAME ===
     println("\n--- Baseline: DataFrame ---")
     val baselineTime = benchmarkPowerIterationDataFrame(
       spark,
@@ -488,15 +421,13 @@ object ComprehensiveEndToEndBenchmarks {
     )
 
     println(f"\nDataFrame implementation:")
-    println(f"  Time: ${baselineTime}%.2f ms")
+    println(f"Time: ${baselineTime}%.2f ms")
 
-    // === COMPARISON ===
     val speedup = baselineTime / customTime
     val throughput = iterations.toDouble / (customTime / 1000.0)
 
     println("\n" + "=" * 80)
     println("POWER ITERATION RESULTS")
-    println("=" * 80)
     println(f"Custom Engine:    ${customTime}%,10.2f ms")
     println(f"DataFrame:        ${baselineTime}%,10.2f ms")
     println(f"Speedup:          ${speedup}%10.2fx")
@@ -538,7 +469,6 @@ object ComprehensiveEndToEndBenchmarks {
     val start = System.nanoTime()
 
     for (i <- 1 to iterations) {
-      // ✓ Use aliases to avoid ambiguity
       val matAlias = matrixDF.alias("m")
       val vecAlias = vectorDF.alias("v")
 
@@ -573,8 +503,6 @@ object ComprehensiveEndToEndBenchmarks {
     elapsed
   }
 
-  /** Generate comprehensive report with all results
-    */
   def generateEndToEndReport(
       results: Seq[EndToEndResult],
       outputPath: String
@@ -660,12 +588,11 @@ object ComprehensiveEndToEndBenchmarks {
 
     writer.close()
 
-    println(s"\n✓ Report generated: $outputPath")
+    println(s"\nReport generated: $outputPath")
   }
 }
 
 object EndToEndBenchmarksRunner {
-
   def main(args: Array[String]): Unit = {
 
     val conf = new org.apache.spark.SparkConf()
@@ -725,10 +652,10 @@ object EndToEndBenchmarksRunner {
       )
 
       // Generate report
-      new java.io.File("rwBenchmarks/results").mkdirs()
+      new java.io.File("results/e2e/results").mkdirs()
       ComprehensiveEndToEndBenchmarks.generateEndToEndReport(
         results.toSeq,
-        "rwBenchmarks/results/end_to_end_evaluation.md"
+        "results/e2e/results/end_to_end_evaluation.md"
       )
 
       println("\n" + "=" * 80)
