@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""
-Generate plots for End-to-End System Evaluation
-Creates publication-quality visualizations for dissertation
-
-Usage: python3 rwBenchmarks/plot.py
-Run from project root directory
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -26,13 +17,13 @@ plt.rcParams['ytick.labelsize'] = 10
 plt.rcParams['legend.fontsize'] = 10
 
 # Paths
-RESULTS_DIR = Path('rwBenchmarks/results')
+RESULTS_DIR = Path('results/e2e/results')
 PLOTS_DIR = RESULTS_DIR / 'plots'
 
 def create_output_dir():
     """Create output directory for plots"""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Created output directory: {PLOTS_DIR}")
+    print(f"Created output directory: {PLOTS_DIR}")
 
 def load_results():
     """Load results from benchmark output or use example data"""
@@ -40,7 +31,7 @@ def load_results():
     report_file = RESULTS_DIR / 'end_to_end_evaluation.md'
     
     if report_file.exists():
-        print(f"✓ Found results file: {report_file}")
+        print(f"Found results file: {report_file}")
         # TODO: Parse markdown table
         # For now, use example data
     
@@ -56,7 +47,7 @@ def load_results():
     }
     
     df = pd.DataFrame(data)
-    print(f"✓ Loaded {len(df)} benchmark results")
+    print(f"Loaded {len(df)} benchmark results")
     return df
 
 def plot_speedup_comparison(df):
@@ -85,7 +76,7 @@ def plot_speedup_comparison(df):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'speedup_comparison.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'speedup_comparison.pdf', bbox_inches='tight')
-    print("✓ Generated: speedup_comparison.png/pdf")
+    print("Generated: speedup_comparison.png/pdf")
     plt.close()
 
 def plot_execution_time_comparison(df):
@@ -115,7 +106,7 @@ def plot_execution_time_comparison(df):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'execution_time_comparison.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'execution_time_comparison.pdf', bbox_inches='tight')
-    print("✓ Generated: execution_time_comparison.png/pdf")
+    print("Generated: execution_time_comparison.png/pdf")
     plt.close()
 
 def plot_throughput_analysis(df):
@@ -147,7 +138,7 @@ def plot_throughput_analysis(df):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'throughput_analysis.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'throughput_analysis.pdf', bbox_inches='tight')
-    print("✓ Generated: throughput_analysis.png/pdf")
+    print("Generated: throughput_analysis.png/pdf")
     plt.close()
 
 def plot_performance_improvement(df):
@@ -177,7 +168,7 @@ def plot_performance_improvement(df):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'performance_improvement.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'performance_improvement.pdf', bbox_inches='tight')
-    print("✓ Generated: performance_improvement.png/pdf")
+    print("Generated: performance_improvement.png/pdf")
     plt.close()
 
 def plot_iteration_performance(df):
@@ -185,7 +176,7 @@ def plot_iteration_performance(df):
     iterative_cases = df[df['iterations'] > 1].copy()
     
     if len(iterative_cases) == 0:
-        print("⚠ No iterative cases to plot")
+        print("No iterative cases to plot")
         return
     
     iterative_cases['time_per_iteration'] = (
@@ -219,7 +210,7 @@ def plot_iteration_performance(df):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'iteration_performance.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'iteration_performance.pdf', bbox_inches='tight')
-    print("✓ Generated: iteration_performance.png/pdf")
+    print("Generated: iteration_performance.png/pdf")
     plt.close()
 
 def plot_summary_dashboard(df):
@@ -305,7 +296,7 @@ def plot_summary_dashboard(df):
     
     plt.savefig(PLOTS_DIR / 'summary_dashboard.png', dpi=300, bbox_inches='tight')
     plt.savefig(PLOTS_DIR / 'summary_dashboard.pdf', bbox_inches='tight')
-    print("✓ Generated: summary_dashboard.png/pdf")
+    print("Generated: summary_dashboard.png/pdf")
     plt.close()
 
 def main():
@@ -338,7 +329,6 @@ def main():
     print("  - performance_improvement.png/pdf")
     print("  - iteration_performance.png/pdf")
     print("  - summary_dashboard.png/pdf")
-    print("\nUse these plots in your dissertation Section 5.5!")
 
 if __name__ == "__main__":
     main()

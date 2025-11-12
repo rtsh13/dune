@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Complete End-to-End Evaluation Script
-# Runs all benchmarks and generates comprehensive report
-# 
-# Usage: ./rwBenchmarks/script.sh [SKIP_PLOTS]
-# Example: ./rwBenchmarks/script.sh SKIP_PLOTS
-
 set -e
 
 # Colors
@@ -17,7 +11,7 @@ NC='\033[0m'
 
 # Get script directory and project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR" && pwd )"
 
 cd "$PROJECT_ROOT"
 
@@ -43,25 +37,25 @@ echo
 echo -e "${YELLOW}[Step 1/5]${NC} Checking prerequisites..."
 
 if ! command -v sbt &> /dev/null; then
-    echo -e "${RED}✗ sbt not found${NC}"
+    echo -e "${RED}sbt not found${NC}"
     exit 1
 fi
 
 # Check Python availability
 if ! command -v python3 &> /dev/null; then
-    echo -e "${YELLOW}⚠ python3 not found - plots will be skipped${NC}"
+    echo -e "${YELLOW}python3 not found - plots will be skipped${NC}"
     SKIP_PLOTS=true
 fi
 
-echo -e "${GREEN}✓${NC} Prerequisites checked"
+echo -e "${GREEN}${NC} Prerequisites checked"
 echo
 
 # Step 2: Verify data exists
 echo -e "${YELLOW}[Step 2/5]${NC} Verifying synthetic data..."
 
 if [ ! -d "synthetic-data" ]; then
-    echo -e "${RED}✗ synthetic-data/ directory not found${NC}"
-    echo "  Please run: sbt \"runMain utils.MatrixGenerator\""
+    echo -e "${RED}synthetic-data/ directory not found${NC}"
+    echo "  Please run: sbt \"runMain ./src/main/scala/utils.MatrixGenerator\""
     exit 1
 fi
 
@@ -73,13 +67,13 @@ DATASETS=(
 
 for dataset in "${DATASETS[@]}"; do
     if [ ! -f "$dataset" ]; then
-        echo -e "${RED}✗ Missing: $dataset${NC}"
+        echo -e "${RED}Missing: $dataset${NC}"
         echo "  Please generate test data first"
         exit 1
     fi
 done
 
-echo -e "${GREEN}✓${NC} All required datasets found"
+echo -e "${GREEN}${NC} All required datasets found"
 echo
 
 # Step 3: Compile
@@ -87,20 +81,19 @@ echo -e "${YELLOW}[Step 3/5]${NC} Compiling project..."
 sbt compile
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ Compilation failed${NC}"
+    echo -e "${RED}Compilation failed${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓${NC} Compilation complete"
+echo -e "${GREEN}${NC} Compilation complete"
 echo
 
 # Step 4: Run benchmarks
 echo -e "${YELLOW}[Step 4/5]${NC} Running end-to-end benchmarks..."
-echo -e "  This will take 10-15 minutes..."
 echo
 
 # Create results directory
-mkdir -p rwBenchmarks/results/plots
+mkdir -p results/e2e/results/plots
 
 echo "Running: sbt \"runMain realworldbenchmarks.EndToEndBenchmarksRunner\""
 echo
@@ -109,11 +102,11 @@ echo
 sbt "runMain realworldbenchmarks.EndToEndBenchmarksRunner"
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ Benchmarks failed${NC}"
+    echo -e "${RED}Benchmarks failed${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓${NC} Benchmarks complete"
+echo -e "${GREEN}${NC} Benchmarks complete"
 echo
 
 # Step 5: Generate plots (if not skipped)
@@ -123,7 +116,7 @@ if [ "$SKIP_PLOTS" = false ]; then
     # Check if virtual environment exists
     if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
         echo "Using existing virtual environment..."
-        # ✓ Check if packages are installed in venv
+        # Check if packages are installed in venv
         if ! venv/bin/python3 -c "import matplotlib" &> /dev/null 2>&1; then
             echo "Installing missing packages in venv..."
             venv/bin/pip install --quiet matplotlib seaborn pandas numpy
@@ -141,13 +134,13 @@ if [ "$SKIP_PLOTS" = false ]; then
         done
         
         if [ "$MISSING_DEPS" = true ]; then
-            echo -e "${YELLOW}⚠ Missing Python packages${NC}"
+            echo -e "${YELLOW}Missing Python packages${NC}"
             echo -e "${YELLOW}Setting up virtual environment...${NC}"
             
             # Create virtual environment
             python3 -m venv venv
             if [ $? -ne 0 ]; then
-                echo -e "${RED}✗ Failed to create virtual environment${NC}"
+                echo -e "${RED}Failed to create virtual environment${NC}"
                 echo -e "${YELLOW}Skipping plot generation${NC}"
                 SKIP_PLOTS=true
             else
@@ -155,7 +148,7 @@ if [ "$SKIP_PLOTS" = false ]; then
                 venv/bin/pip install --quiet matplotlib seaborn pandas numpy
                 
                 if [ $? -ne 0 ]; then
-                    echo -e "${RED}✗ Failed to install packages${NC}"
+                    echo -e "${RED}Failed to install packages${NC}"
                     echo -e "${YELLOW}Skipping plot generation${NC}"
                     SKIP_PLOTS=true
                 else
@@ -167,18 +160,17 @@ if [ "$SKIP_PLOTS" = false ]; then
         fi
     fi
     
-    # Run plot generation if dependencies are satisfied
-    if [ "$SKIP_PLOTS" = false ] && [ -f "rwBenchmarks/plot.py" ]; then
-        echo "Running: $PYTHON_CMD rwBenchmarks/plot.py"
-        $PYTHON_CMD rwBenchmarks/plot.py
+    if [ "$SKIP_PLOTS" = false ] && [ -f "results/e2e/plot.py" ]; then
+        echo "Running: $PYTHON_CMD results/e2e/plot.py"
+        $PYTHON_CMD results/e2e/plot.py
         
         if [ $? -ne 0 ]; then
-            echo -e "${YELLOW}⚠ Plot generation failed (non-fatal)${NC}"
+            echo -e "${YELLOW}Plot generation failed (non-fatal)${NC}"
         else
-            echo -e "${GREEN}✓${NC} Plots generated"
+            echo -e "${GREEN}${NC} Plots generated"
         fi
-    elif [ ! -f "rwBenchmarks/plot.py" ]; then
-        echo -e "${RED}✗ Plot script not found: rwBenchmarks/plot.py${NC}"
+    elif [ ! -f "results/e2e/plot.py" ]; then
+        echo -e "${RED}Plot script not found: results/e2e/plot.py${NC}"
     fi
 else
     echo -e "${YELLOW}[Step 5/5]${NC} Skipping plot generation (as requested)"
@@ -192,24 +184,24 @@ echo -e "${GREEN}  EVALUATION COMPLETE!${NC}"
 echo -e "${GREEN}================================================================${NC}"
 echo
 echo -e "${BLUE}Results Location:${NC}"
-echo "  📄 Report:  rwBenchmarks/results/end_to_end_evaluation.md"
-echo "  📊 Plots:   rwBenchmarks/results/plots/"
+echo "Report:  results/e2e/results/end_to_end_evaluation.md"
+echo " Plots:   results/e2e/results/plots/"
 echo
 echo -e "${BLUE}Generated Files:${NC}"
 
-if [ -f "rwBenchmarks/results/end_to_end_evaluation.md" ]; then
-    echo -e "  ${GREEN}✓${NC} end_to_end_evaluation.md"
-    wc -l rwBenchmarks/results/end_to_end_evaluation.md
+if [ -f "results/e2e/results/end_to_end_evaluation.md" ]; then
+    echo -e "  ${GREEN}${NC} end_to_end_evaluation.md"
+    wc -l results/e2e/results/end_to_end_evaluation.md
 else
     echo -e "  ${YELLOW}⚠${NC} end_to_end_evaluation.md (checking alternate locations...)"
     find . -name "end_to_end_evaluation.md" 2>/dev/null | head -5
 fi
 
-if [ -d "rwBenchmarks/results/plots" ]; then
-    plot_count=$(ls -1 rwBenchmarks/results/plots/*.png 2>/dev/null | wc -l)
+if [ -d "results/e2e/results/plots" ]; then
+    plot_count=$(ls -1 results/e2e/results/plots/*.png 2>/dev/null | wc -l)
     if [ $plot_count -gt 0 ]; then
-        echo -e "  ${GREEN}✓${NC} Plots generated: $plot_count files"
-        ls rwBenchmarks/results/plots/*.png 2>/dev/null | sed 's/^/    /'
+        echo -e "  ${GREEN}${NC} Plots generated: $plot_count files"
+        ls results/e2e/results/plots/*.png 2>/dev/null | sed 's/^/    /'
     else
         echo -e "  ${YELLOW}⚠${NC} No plots generated"
         if [ "$SKIP_PLOTS" = true ]; then
@@ -220,16 +212,8 @@ fi
 
 echo
 echo -e "${BLUE}Quick View Commands:${NC}"
-echo "  cat rwBenchmarks/results/end_to_end_evaluation.md"
-if [ -f "rwBenchmarks/results/plots/summary_dashboard.png" ]; then
-    echo "  open rwBenchmarks/results/plots/summary_dashboard.png"
+echo "  cat results/e2e/results/end_to_end_evaluation.md"
+if [ -f "results/e2e/results/plots/summary_dashboard.png" ]; then
+    echo "  open results/e2e/results/plots/summary_dashboard.png"
 fi
-echo
-echo -e "${BLUE}Next Steps:${NC}"
-echo "  1. Review rwBenchmarks/results/end_to_end_evaluation.md"
-echo "  2. Include plots in dissertation Section 5.5"
-echo "  3. Write analysis explaining results"
-echo "  4. Compare with related work"
-echo
-echo -e "${GREEN}Use these results for your dissertation! 🎓${NC}"
 echo

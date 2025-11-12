@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+echo "=== Cleaning previous results ==="
+rm -rf interactiveResults
+echo "Done"
+=======
 #!/bin/bash
 
 # Enhanced run script for sparse matrix multiplication engine
@@ -89,6 +94,7 @@ done
 echo -e "${BLUE}================================================================================${NC}"
 echo -e "${BLUE}     SPARSE MATRIX MULTIPLICATION ENGINE - INTERACTIVE RUN${NC}"
 echo -e "${BLUE}================================================================================${NC}"
+>>>>>>> a71bdf3f98ce286a7b74078418354e286faedcf0
 echo
 
 # Verify input files exist
