@@ -23,9 +23,9 @@ output_dir = "synthetic-data"
 # Create output directory if it doesn't exist
 os.makedirs(output_dir, exist_ok=True)
 
-print("=" * 60)
+print( * 60)
 print("GENERATING SQUARE SPARSE MATRICES")
-print("=" * 60)
+print( * 60)
 
 for n in square_sizes:
     print(f"\nGenerating {n}x{n} sparse matrix...")
@@ -46,9 +46,9 @@ for n in square_sizes:
     print(f"  Non-zero entries: {len(df):,}")
     print(f"  Density: {sparse_density*100}%")
 
-print("\n" + "=" * 60)
+print("\n" +  * 60)
 print("GENERATING RECTANGULAR SPARSE MATRICES")
-print("=" * 60)
+print( * 60)
 
 for rows, cols in rectangular_sizes:
     print(f"\nGenerating {rows}x{cols} rectangular sparse matrix...")
@@ -69,9 +69,9 @@ for rows, cols in rectangular_sizes:
     print(f"  Non-zero entries: {len(df):,}")
     print(f"  Density: {sparse_density*100}%")
 
-print("\n" + "=" * 60)
+print("\n" +  * 60)
 print("GENERATING SQUARE DENSE MATRICES")
-print("=" * 60)
+print( * 60)
 
 for n in dense_square_sizes:
     print(f"\nGenerating {n}x{n} dense matrix...")
@@ -92,9 +92,9 @@ for n in dense_square_sizes:
     print(f"  Non-zero entries: {len(df):,}")
     print(f"  Density: {dense_density*100}%")
 
-print("\n" + "=" * 60)
+print("\n" +  * 60)
 print("GENERATING RECTANGULAR DENSE MATRICES")
-print("=" * 60)
+print( * 60)
 
 for rows, cols in dense_rectangular_sizes:
     print(f"\nGenerating {rows}x{cols} rectangular dense matrix...")

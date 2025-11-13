@@ -17,9 +17,7 @@ object DatasetDiscovery {
   private val vectorPattern: Regex = """dense_vector_(\d+).*\.csv""".r
   
   def discoverAllDatasets(dataDir: String = "synthetic-data"): Seq[DatasetInfo] = {
-    println("\n" + "="*80)
     println("DISCOVERING DATASETS IN " + dataDir)
-    println("="*80)
     
     val dir = new File(dataDir)
     if (!dir.exists() || !dir.isDirectory) {
@@ -92,11 +90,9 @@ object DatasetDiscovery {
   
   def main(args: Array[String]): Unit = {
     val datasets = discoverAllDatasets("synthetic-data")
-    
-    println("\n" + "="*80)
+
     println("SUMMARY BY CATEGORY")
-    println("="*80)
-    
+        
     val byCategory = datasets.groupBy(_.category)
     Seq("Small", "Medium", "Large", "Extra-Large").foreach { cat =>
       val count = byCategory.get(cat).map(_.size).getOrElse(0)

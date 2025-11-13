@@ -425,7 +425,7 @@ object ComprehensiveEndToEndBenchmarks {
     val speedup = baselineTime / customTime
     val throughput = iterations.toDouble / (customTime / 1000.0)
 
-    println("\n" + "=" * 80)
+    println("\n" +  * 80)
     println("POWER ITERATION RESULTS")
     println(f"Custom Engine:    ${customTime}%,10.2f ms")
     println(f"DataFrame:        ${baselineTime}%,10.2f ms")
@@ -606,9 +606,9 @@ object EndToEndBenchmarksRunner {
     sc.setLogLevel("WARN")
 
     try {
-      println("\n" + "=" * 80)
+      println("\n" +  * 80)
       println("COMPREHENSIVE END-TO-END SYSTEM EVALUATION")
-      println("=" * 80)
+      println( * 80)
 
       val results =
         ArrayBuffer[ComprehensiveEndToEndBenchmarks.EndToEndResult]()
@@ -657,9 +657,9 @@ object EndToEndBenchmarksRunner {
         "results/e2e/results/end_to_end_evaluation.md"
       )
 
-      println("\n" + "=" * 80)
+      println("\n" +  * 80)
       println("END-TO-END EVALUATION COMPLETE")
-      println("=" * 80)
+      println( * 80)
       println("\nReport: e2e_testResults/end_to_end_evaluation.md")
 
     } catch {

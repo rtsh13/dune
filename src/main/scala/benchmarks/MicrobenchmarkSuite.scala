@@ -35,7 +35,7 @@ object MicrobenchmarkSuite {
   ): MicroResults = {
 
     println("Running Microbenchmark Suite...")
-    println("=" * 80)
+    println( * 80)
 
     val formatResults = ArrayBuffer[FormatResult]()
     val dataframeResults = ArrayBuffer[DataFrameResult]()
@@ -145,16 +145,16 @@ object MicrobenchmarkSuite {
     }
 
     // NEW: Test SpMM-Dense
-    println("\n\n" + "=" * 80)
+    println("\n\n" +  * 80)
     println("TESTING: Sparse Matrix × Dense Matrix (SpMM-Dense)")
-    println("=" * 80)
+    println( * 80)
 
     testSpMMDense(sc, formatResults, iterations)
 
     // NEW: Test MTTKRP
-    println("\n\n" + "=" * 80)
+    println("\n\n" +  * 80)
     println("TESTING: MTTKRP (Tensor Operations)")
-    println("=" * 80)
+    println( * 80)
 
     testMTTKRP(sc, formatResults, iterations)
 

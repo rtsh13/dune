@@ -33,7 +33,7 @@ object OptimizationImpactSuite {
   ): OptimizationResults = {
 
     println("Running Optimization Impact Analysis...")
-    println("=" * 80)
+    println( * 80)
 
     val allResults = ArrayBuffer[OptimizationResult]()
 

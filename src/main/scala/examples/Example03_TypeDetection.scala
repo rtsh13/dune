@@ -14,10 +14,10 @@ object Example03_TypeDetection {
     val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
 
-    println("=" * 60)
+    println( * 60)
     println("Example 3: Auto Type Detection")
     println("NO collect(), NO collectAsMap()")
-    println("=" * 60)
+    println( * 60)
 
     println("\n--- Loading High-Sparsity Matrix ---")
     val sparseMatrix = SmartLoader.loadMatrix(

@@ -37,10 +37,10 @@ object BenchmarkController {
       outputFile: String = "results/COMPREHENSIVE_BENCHMARK_REPORT.md"
   ): Unit = {
 
-    println("=" * 80)
+    println( * 80)
     println("COMPREHENSIVE BENCHMARK SUITE")
     println("Following PDSS Coursework Guidelines")
-    println("=" * 80)
+    println( * 80)
 
     // Create output directory
     new java.io.File("results").mkdirs()
@@ -99,9 +99,9 @@ object BenchmarkController {
         ablationResults
       )
 
-      println("\n\n" + "=" * 80)
+      println("\n\n" +  * 80)
       println("BENCHMARK SUITE COMPLETE")
-      println("=" * 80)
+      println( * 80)
       println(s"\nComprehensive report saved to: $outputFile")
 
     } catch {

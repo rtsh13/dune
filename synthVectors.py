@@ -13,9 +13,9 @@ value_range = (-15, 15)  # Range for random values
 # Create output directory if it doesn't exist
 os.makedirs(output_dir, exist_ok=True)
 
-print("=" * 60)
+print( * 60)
 print("GENERATING DENSE VECTORS")
-print("=" * 60)
+print( * 60)
 
 for n in vector_sizes:
     print(f"\nGenerating dense vector of size {n}...")
@@ -34,9 +34,9 @@ for n in vector_sizes:
     print(f"  Saved to {filename}")
     print(f"  Non-zero entries: {len(df):,}")
 
-print("\n" + "=" * 60)
+print("\n" +  * 60)
 print("GENERATING SPARSE VECTORS")
-print("=" * 60)
+print( * 60)
 
 for n in vector_sizes:
     print(f"\nGenerating sparse vector of size {n}...")

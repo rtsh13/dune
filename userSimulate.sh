@@ -1,21 +1,13 @@
-<<<<<<< HEAD
-echo "=== Cleaning previous results ==="
-rm -rf interactiveResults
-echo "Done"
-=======
 #!/bin/bash
 
-# Enhanced run script for sparse matrix multiplication engine
-# Supports multiple strategies and formats
-
-set -e  # Exit on error
+set -e
 
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Default parameters
 INPUT_A="synthetic-data/sparse_matrix_1000x1000.csv"
@@ -91,42 +83,39 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo -e "${BLUE}================================================================================${NC}"
-echo -e "${BLUE}     SPARSE MATRIX MULTIPLICATION ENGINE - INTERACTIVE RUN${NC}"
-echo -e "${BLUE}================================================================================${NC}"
->>>>>>> a71bdf3f98ce286a7b74078418354e286faedcf0
+echo -e "${BLUE}SPARSE MATRIX MULTIPLICATION ENGINE - INTERACTIVE RUN${NC}"
 echo
 
 # Verify input files exist
-echo -e "${YELLOW}=== Verifying Input Files ===${NC}"
+echo -e "${YELLOW} Verifying Input Files ${NC}"
 if [ ! -f "$INPUT_A" ]; then
-  echo -e "${RED}✗ Error: Input file A not found: $INPUT_A${NC}"
+  echo -e "${RED}Error: Input file A not found: $INPUT_A${NC}"
   exit 1
 fi
 if [ ! -f "$INPUT_B" ]; then
-  echo -e "${RED}✗ Error: Input file B not found: $INPUT_B${NC}"
+  echo -e "${RED}Error: Input file B not found: $INPUT_B${NC}"
   exit 1
 fi
-echo -e "${GREEN}✓ Input file A exists: $INPUT_A${NC}"
-echo -e "${GREEN}✓ Input file B exists: $INPUT_B${NC}"
+echo -e "${GREEN}Input file A exists: $INPUT_A${NC}"
+echo -e "${GREEN}Input file B exists: $INPUT_B${NC}"
 echo
 
 # Clean previous results
-echo -e "${YELLOW}=== Cleaning Previous Results ===${NC}"
+echo -e "${YELLOW}Cleaning Previous Results${NC}"
 if [ -d "$OUTPUT_DIR" ]; then
   rm -rf "$OUTPUT_DIR"
-  echo -e "${GREEN}✓ Removed existing output directory${NC}"
+  echo -e "${GREEN}Removed existing output directory${NC}"
 else
-  echo -e "${GREEN}✓ No previous results to clean${NC}"
+  echo -e "${GREEN}No previous results to clean${NC}"
 fi
 echo
 
 # Compile project
-echo -e "${YELLOW}=== Compiling Project ===${NC}"
+echo -e "${YELLOW}Compiling Project${NC}"
 if sbt compile; then
-  echo -e "${GREEN}✓ Compilation successful${NC}"
+  echo -e "${GREEN}Compilation successful${NC}"
 else
-  echo -e "${RED}✗ Compilation failed${NC}"
+  echo -e "${RED}Compilation failed${NC}"
   exit 1
 fi
 echo
@@ -147,7 +136,7 @@ if [ -n "$VECTOR_TYPE" ]; then
 fi
 
 # Display run configuration
-echo -e "${YELLOW}=== Run Configuration ===${NC}"
+echo -e "${YELLOW} Run Configuration ${NC}"
 echo -e "Input A:      ${GREEN}$INPUT_A${NC}"
 echo -e "Input B:      ${GREEN}$INPUT_B${NC}"
 echo -e "Output:       ${GREEN}$OUTPUT_DIR/${NC}"
@@ -171,36 +160,34 @@ fi
 echo
 
 # Run multiplication
-echo -e "${YELLOW}=== Running Multiplication ===${NC}"
+echo -e "${YELLOW} Running Multiplication ${NC}"
 echo -e "${BLUE}Command: sbt \"$CMD\"${NC}"
 echo
 
 if sbt "$CMD"; then
   echo
-  echo -e "${GREEN}✓ Multiplication completed successfully${NC}"
+  echo -e "${GREEN}Multiplication completed successfully${NC}"
 else
   echo
-  echo -e "${RED}✗ Multiplication failed${NC}"
+  echo -e "${RED}Multiplication failed${NC}"
   exit 1
 fi
 
 # Display results
-echo
-echo -e "${BLUE}================================================================================${NC}"
+echo -e "${BLUE}${NC}"
 echo -e "${BLUE}     RESULTS${NC}"
-echo -e "${BLUE}================================================================================${NC}"
-echo
+echo -e "${BLUE}${NC}"
 
 if [ -d "$OUTPUT_DIR" ]; then
   RESULT_FILES=$(find "$OUTPUT_DIR" -name "part-*" 2>/dev/null | wc -l)
   
   if [ "$RESULT_FILES" -gt 0 ]; then
-    echo -e "${GREEN}✓ Results saved to: $OUTPUT_DIR/${NC}"
+    echo -e "${GREEN}Results saved to: $OUTPUT_DIR/${NC}"
     echo -e "  Number of result files: $RESULT_FILES"
     echo
     
     # Show preview of results
-    echo -e "${YELLOW}=== Result Preview (first 20 entries) ===${NC}"
+    echo -e "${YELLOW} Result Preview (first 20 entries) ${NC}"
     cat "$OUTPUT_DIR"/part-* 2>/dev/null | head -20
     echo
     
@@ -210,19 +197,19 @@ if [ -d "$OUTPUT_DIR" ]; then
     echo
     
     # Useful commands
-    echo -e "${YELLOW}=== Useful Commands ===${NC}"
+    echo -e "${YELLOW} Useful Commands ${NC}"
     echo -e "View all results:     ${BLUE}cat $OUTPUT_DIR/part-*${NC}"
     echo -e "Count entries:        ${BLUE}cat $OUTPUT_DIR/part-* | wc -l${NC}"
     echo -e "View first 50:        ${BLUE}cat $OUTPUT_DIR/part-* | head -50${NC}"
     echo -e "Search for index 42:  ${BLUE}cat $OUTPUT_DIR/part-* | grep '^42,'${NC}"
   else
-    echo -e "${RED}✗ No result files found in $OUTPUT_DIR${NC}"
+    echo -e "${RED}No result files found in $OUTPUT_DIR${NC}"
   fi
 else
-  echo -e "${RED}✗ Output directory not created${NC}"
+  echo -e "${RED}Output directory not created${NC}"
 fi
 
 echo
-echo -e "${BLUE}================================================================================${NC}"
+echo -e "${BLUE}${NC}"
 echo -e "${GREEN}RUN COMPLETE${NC}"
-echo -e "${BLUE}================================================================================${NC}"
+echo -e "${BLUE}${NC}"
