@@ -38,7 +38,7 @@ case class SparseTensor(
   def sparsity: Double = 1.0 - (numNonZeros.toDouble / totalElements)
 
   override def toString: String = {
-    f"SparseTensor(${dimensions.mkString(" × ")}, $numNonZeros non-zeros, ${sparsity * 100}%.1f%% sparse)"
+    f"SparseTensor(${dimensions.mkString(" * ")}, $numNonZeros non-zeros, ${sparsity * 100}%.1f%% sparse)"
   }
 }
 

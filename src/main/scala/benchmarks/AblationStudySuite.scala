@@ -36,7 +36,7 @@ def runAblationStudies(
   ): AblationResults = {
 
     println("Running Ablation Studies...")
-    println( * 80)
+    
 
     // Select medium-sized dataset for ablation
     val testDataset: Option[DatasetDiscovery.DatasetInfo] = datasets

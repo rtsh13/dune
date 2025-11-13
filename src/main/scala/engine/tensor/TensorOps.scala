@@ -57,7 +57,7 @@ object TensorOps {
 
   /** MTTKRP: Core operation in CP tensor decomposition
     *
-    * Computes: Y = T_(mode) × (U_n ⊙ ... ⊙ U_1)
+    * Computes: Y = T_(mode) * (U_n ⊙ ... ⊙ U_1)
     *
     * Where:
     *   - T_(mode) is tensor unfolded along mode
@@ -142,7 +142,7 @@ object TensorOps {
 
   /** Multiply tensor by matrix along a specific mode
     *
-    * T ×_mode M
+    * T *_mode M
     *
     * Result is a tensor with modified dimension along 'mode'
     */
@@ -200,7 +200,7 @@ object TensorOps {
 
   /** Khatri-Rao product: column-wise Kronecker product
     *
-    * For matrices A (I×R) and B (J×R): Result C (IJ×R) where C[:,r] = A[:,r] ⊗
+    * For matrices A (I*R) and B (J*R): Result C (IJ*R) where C[:,r] = A[:,r] ⊗
     * B[:,r]
     *
     * Used in tensor decomposition algorithms

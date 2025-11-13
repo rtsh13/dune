@@ -315,9 +315,9 @@ object ComprehensiveVerification {
     testSize: Int = 100
   ): Map[String, Seq[VerificationResult]] = {
 
-    println( * 80)
+    
     println("COMPREHENSIVE VERIFICATION SUITE")
-    println( * 80)
+    
 
     val matrixPath = s"$dataDir/sparse_matrix_${testSize}x${testSize}.csv"
     val vectorPath = s"$dataDir/dense_vector_${testSize}.csv"
@@ -365,10 +365,8 @@ object ComprehensiveVerification {
 
     val spmmDenseResults = verifyAllSpMMDense(sc, cooMatrix, denseMatrix)
 
-    // Print overall summary
-    println("\n\n" +  * 80)
     println("VERIFICATION SUMMARY")
-    println( * 80)
+    
 
     val allResults = spmvResults ++ spmvSparseResults ++ spmmResults ++ spmmDenseResults
     val passed = allResults.count(_.passed)

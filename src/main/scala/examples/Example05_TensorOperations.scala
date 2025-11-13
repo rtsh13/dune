@@ -34,7 +34,7 @@ object Example05_TensorOperations {
 
     val tensor = SparseTensor(
       tensorData,
-      dimensions = Array(3, 2, 2) // 3×2×2 tensor
+      dimensions = Array(3, 2, 2) // 3*2*2 tensor
     )
 
     println(s"Tensor: $tensor")
@@ -58,7 +58,7 @@ object Example05_TensorOperations {
 
     println("\n### Tensor-Matrix Product ###\n")
 
-    // Create a factor matrix (2×3)
+    // Create a factor matrix (2*3)
     val factorMatrix = sc.parallelize(
       Seq(
         (0, 0, 0.5),

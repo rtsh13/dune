@@ -86,7 +86,7 @@ object MultiplicationOps {
       vectorX: RDD[(Int, Double)]
   ): RDD[(Int, Double)] = {
 
-    println("Computing CSR Matrix × Dense Vector (baseline)...")
+    println("Computing CSR Matrix * Dense Vector (baseline)...")
 
     CSROperations.spMV(csrMatrix, vectorX)
   }

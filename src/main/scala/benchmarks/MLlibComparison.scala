@@ -16,9 +16,9 @@ object MLlibComparison {
   )
 
   def benchmarkSpMV(sc: SparkContext, matrixSize: Int, dataDir: String): BenchmarkResult = {
-    println("\n" +  * 80)
+    
     println("BENCHMARK: SpMV - Custom vs MLlib")
-    println( * 80)
+    
 
     val matrix = COOLoader.loadSparseMatrix(sc, s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv")
     val vector = COOLoader.loadDenseVectorRDD(sc, s"$dataDir/dense_vector_${matrixSize}.csv")
@@ -67,9 +67,9 @@ object MLlibComparison {
   }
 
   def benchmarkSpMM(sc: SparkContext, matrixSize: Int, dataDir: String): BenchmarkResult = {
-    println("\n" +  * 80)
+    
     println("BENCHMARK: SpMM - Custom vs MLlib BlockMatrix")
-    println( * 80)
+    
 
     val matrixA = COOLoader.loadSparseMatrix(sc, s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv")
     val matrixB = COOLoader.loadSparseMatrix(sc, s"$dataDir/sparse_matrix_${matrixSize}x${matrixSize}.csv")
@@ -106,18 +106,18 @@ object MLlibComparison {
   }
 
   def runAll(sc: SparkContext): Unit = {
-    println("\n" +  * 80)
+    
     println("MLLIB COMPARISON BENCHMARK")
-    println( * 80)
+    
 
     val results = Seq(
       benchmarkSpMV(sc, 1000, "synthetic-data"),
       benchmarkSpMM(sc, 1000, "synthetic-data")
     )
 
-    println("\n" +  * 80)
+    
     println("SUMMARY")
-    println( * 80)
+    
     results.foreach { r =>
       val status = if (r.speedup > 1.0) "Faster" else "Slower"
       println(f"${r.operation}%-10s: ${r.speedup}%.2fx $status")
