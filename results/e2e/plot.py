@@ -300,10 +300,7 @@ def plot_summary_dashboard(df):
     plt.close()
 
 def main():
-    """Main execution"""
-    print("\n" + "="*60)
     print("GENERATING END-TO-END EVALUATION PLOTS")
-    print("="*60 + "\n")
     
     # Create output directory
     create_output_dir()
@@ -319,9 +316,7 @@ def main():
     plot_iteration_performance(df)
     plot_summary_dashboard(df)
     
-    print("\n" + "="*60)
     print("PLOT GENERATION COMPLETE")
-    print("="*60)
     print(f"\nGenerated plots in: {PLOTS_DIR}/")
     print("  - speedup_comparison.png/pdf")
     print("  - execution_time_comparison.png/pdf")

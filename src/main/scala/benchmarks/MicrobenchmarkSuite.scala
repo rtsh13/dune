@@ -35,7 +35,7 @@ object MicrobenchmarkSuite {
   ): MicroResults = {
 
     println("Running Microbenchmark Suite...")
-    println("=" * 80)
+    
 
     val formatResults = ArrayBuffer[FormatResult]()
     val dataframeResults = ArrayBuffer[DataFrameResult]()
@@ -145,16 +145,14 @@ object MicrobenchmarkSuite {
     }
 
     // NEW: Test SpMM-Dense
-    println("\n\n" + "=" * 80)
-    println("TESTING: Sparse Matrix × Dense Matrix (SpMM-Dense)")
-    println("=" * 80)
+    println("TESTING: Sparse Matrix * Dense Matrix (SpMM-Dense)")
+    
 
     testSpMMDense(sc, formatResults, iterations)
 
     // NEW: Test MTTKRP
-    println("\n\n" + "=" * 80)
     println("TESTING: MTTKRP (Tensor Operations)")
-    println("=" * 80)
+    
 
     testMTTKRP(sc, formatResults, iterations)
 
@@ -207,7 +205,7 @@ object MicrobenchmarkSuite {
       val densePath = s"synthetic-data/dense_matrix_${matrixSize}x${denseSize}.csv"
 
       if (new java.io.File(matrixPath).exists() && new java.io.File(densePath).exists()) {
-        println(s"\n\nTesting SpMM-Dense: ${matrixSize}x${matrixSize} × ${matrixSize}x${denseSize} ($label)")
+        println(s"\n\nTesting SpMM-Dense: ${matrixSize}x${matrixSize} * ${matrixSize}x${denseSize} ($label)")
         println("-" * 80)
 
         val cooMatrix = SmartLoader.loadMatrix(sc, matrixPath).toCOO

@@ -45,7 +45,7 @@ def runEndToEndEvaluation(
   ): EndToEndResults = {
 
     println("Running End-to-End System Evaluation...")
-    println("=" * 80)
+    
 
     // Select small/medium dataset for end-to-end
     val testDataset: Option[DatasetDiscovery.DatasetInfo] = datasets

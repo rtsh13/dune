@@ -95,11 +95,11 @@ echo
 # Create results directory
 mkdir -p results/e2e/results/plots
 
-echo "Running: sbt \"runMain realworldbenchmarks.EndToEndBenchmarksRunner\""
+echo "Running: sbt \"runMain benchmarks.EndToEndBenchmarksRunner\""
 echo
 
 # Run the comprehensive benchmarks
-sbt "runMain realworldbenchmarks.EndToEndBenchmarksRunner"
+sbt "runMain benchmarks.EndToEndBenchmarksRunner"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Benchmarks failed${NC}"

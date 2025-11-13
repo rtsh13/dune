@@ -26,9 +26,7 @@ object Main {
     sc.setLogLevel(params.logLevel)
     
     try {
-      println("="*80)
       println("SPARSE MATRIX MULTIPLICATION ENGINE")
-      println("="*80)
       
       verifyFiles(params.inputA, params.inputB)
       
@@ -54,10 +52,7 @@ object Main {
           performVectorMatrixMultiplication(sc, params)
       }
       
-      println("\n" + "="*80)
-      println("OPERATION COMPLETE")
-      println("="*80)
-      
+      println("OPERATION COMPLETE")      
       if (params.showPreview) {
         println("\nResult preview (first 10 entries):")
         result match {

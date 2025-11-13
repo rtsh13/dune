@@ -138,9 +138,9 @@ def generate_factor_matrices(dimensions, rank, output_dir):
 
 def print_summary(output_dir):
     """Print summary of generated files"""
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("DATA GENERATION SUMMARY")
-    print("=" * 80)
+    print( * 80)
     
     if not os.path.exists(output_dir):
         print(f"Directory {output_dir} does not exist")
@@ -168,9 +168,9 @@ def print_summary(output_dir):
 def main():
     """Main data generation pipeline"""
     
-    print("=" * 80)
+    print( * 80)
     print("TENSOR AND DENSE MATRIX DATA GENERATOR")
-    print("=" * 80)
+    print( * 80)
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     output_dir = "synthetic-data"
@@ -180,9 +180,9 @@ def main():
     print(f"\nOutput directory: {output_dir}")
     
     # PART 1: SPARSE TENSORS
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("PART 1: GENERATING SPARSE TENSORS")
-    print("=" * 80)
+    print( * 80)
     
     tensor_configs = [
         # (dim1, dim2, dim3, sparsity, label)
@@ -198,9 +198,9 @@ def main():
         generate_sparse_tensor(dim1, dim2, dim3, sparsity, output_path)
     
     # PART 2: DENSE MATRICES (for SpMM-Dense)
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("PART 2: GENERATING DENSE MATRICES (for SpMM-Dense)")
-    print("=" * 80)
+    print( * 80)
     
     dense_configs = [
         # (rows, cols, label)
@@ -215,9 +215,9 @@ def main():
         generate_dense_matrix(rows, cols, output_path)
     
     # PART 3: FACTOR MATRICES (for MTTKRP)
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("PART 3: GENERATING FACTOR MATRICES (for MTTKRP)")
-    print("=" * 80)
+    print( * 80)
     
     factor_configs = [
         # (dimensions, rank, label)
@@ -231,9 +231,9 @@ def main():
         generate_factor_matrices(dimensions, rank, output_dir)
     
     # PART 4: RECTANGULAR TENSORS (for testing different aspect ratios)
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("PART 4: GENERATING RECTANGULAR TENSORS")
-    print("=" * 80)
+    print( * 80)
     
     rect_configs = [
         # (dim1, dim2, dim3, sparsity, label)
@@ -248,9 +248,9 @@ def main():
     
     print_summary(output_dir)
     
-    print("\n" + "=" * 80)
+    print("\n" +  * 80)
     print("DATA GENERATION COMPLETE!")
-    print("=" * 80)
+    print( * 80)
     print(f"Finished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("\nNext steps:")
     print("  1. Verify data: ls -lh synthetic-data/")

@@ -2,7 +2,7 @@
 
 **Distributed Sparse Matrix Engine Benchmark Suite**
 
-Generated: 2025-11-11T17:22:22.199684
+Generated: 2025-11-13T20:43:33.655801
 
 ---
 
@@ -16,7 +16,7 @@ Generated: 2025-11-11T17:22:22.199684
 
 ## 1.2 Software Environment
 
-- **Spark Version:** 3.3.0
+- **Spark Version:** 3.5.0
 - **Scala Version:** version 2.12.15
 - **Java Version:** 17.0.17
 - **Spark Master:** local[*]
@@ -71,13 +71,13 @@ We compare against:
 
 | Size | COO (ms) | CSR (ms) | CSC (ms) | Best Format |
 |------|----------|----------|----------|-------------|
-| 10x10 | 73.80 | 57.30 | 54.81 | CSC |
-| 100x100 | 60.60 | 55.72 | 63.07 | CSR |
-| 1000x1000 | 233.82 | 237.51 | 82.57 | CSC |
-| 10000x10000 | 794.42 | 795.29 | 270.07 | CSC |
-| 18000x18000 | 2078.96 | 1949.31 | 711.67 | CSC |
-| 26000x26000 | 4285.48 | 3901.68 | 1522.36 | CSC |
-| 37000x37000 | 15850.84 | 15482.57 | 6524.47 | CSC |
+| 10x10 | 78.01 | 57.07 | 49.77 | CSC |
+| 100x100 | 59.03 | 62.20 | 61.92 | COO |
+| 1000x1000 | 210.93 | 211.21 | 92.67 | CSC |
+| 10000x10000 | 813.51 | 796.50 | 307.01 | CSC |
+| 18000x18000 | 2156.79 | 2073.24 | 773.21 | CSC |
+| 26000x26000 | 4668.27 | 4203.37 | 1644.28 | CSC |
+| 37000x37000 | 15155.70 | 15698.32 | 6325.77 | CSC |
 
 **Key Findings:**
 - Best overall format: **CSC**
@@ -87,16 +87,16 @@ We compare against:
 
 | Size | Custom (ms) | DataFrame (ms) | Speedup | Winner |
 |------|-------------|----------------|---------|--------|
-| 10x10 | 54.81 | COO | 110.87 | 2.02x | Custom |
-| 100x100 | 55.72 | COO | 72.31 | 1.30x | Custom |
-| 1000x1000 | 82.57 | CSC | 94.88 | 1.15x | Custom |
-| 10000x10000 | 270.07 | CSC | 150.30 | 0.56x | DataFrame |
-| 18000x18000 | 711.67 | CSC | 320.12 | 0.45x | DataFrame |
-| 26000x26000 | 1522.36 | CSC | 613.50 | 0.40x | DataFrame |
-| 37000x37000 | 6524.47 | CSC | 2163.90 | 0.33x | DataFrame |
+| 10x10 | 49.77 | COO | 108.00 | 2.17x | Custom |
+| 100x100 | 59.03 | CSR | 74.48 | 1.26x | Custom |
+| 1000x1000 | 92.67 | CSC | 95.77 | 1.03x | Custom |
+| 10000x10000 | 307.01 | CSC | 138.68 | 0.45x | DataFrame |
+| 18000x18000 | 773.21 | CSC | 334.23 | 0.43x | DataFrame |
+| 26000x26000 | 1644.28 | CSC | 560.41 | 0.34x | DataFrame |
+| 37000x37000 | 6325.77 | CSC | 1546.49 | 0.24x | DataFrame |
 
 **Key Findings:**
-- Average speedup vs DataFrame: **2.02x**
+- Average speedup vs DataFrame: **2.17x**
 - Custom implementation leverages sparse structure efficiently
 - DataFrame has overhead for sparse operations
 
@@ -104,11 +104,11 @@ We compare against:
 
 | Operation | Avg Time (ms) | Relative Speed |
 |-----------|---------------|----------------|
-| SpMV                 | 1735.38 | 0.02x |
-| SpMV-Sparse          | 95.53 | 0.38x |
-| SpMM                 | 67.48 | 0.60x |
-| SpMM-Dense           | 199.03 | 0.24x |
-| MTTKRP               | 24.25 | 0.65x |
+| SpMV                 | 1750.31 | 0.02x |
+| SpMV-Sparse          | 91.35 | 0.44x |
+| SpMM                 | 64.70 | 0.65x |
+| SpMM-Dense           | 216.88 | 0.21x |
+| MTTKRP               | 25.07 | 0.78x |
 
 ## 2.4 Impact of Matrix Sparsity
 
@@ -123,12 +123,12 @@ Analysis of performance scaling as matrix dimensions increase.
 
 | From Size | To Size | Size Increase | Time Increase | Scaling Efficiency |
 |-----------|---------|---------------|---------------|-------------------|
-| 10x10 | 100x100 | 100.0x | 1.38x | 7.0% |
-| 100x100 | 1000x1000 | 100.0x | 3.70x | 28.4% |
-| 1000x1000 | 10000x10000 | 100.0x | 3.27x | 25.7% |
-| 10000x10000 | 18000x18000 | 3.2x | 3.46x | 105.7% |
-| 18000x18000 | 26000x26000 | 2.1x | 2.06x | 98.4% |
-| 26000x26000 | 37000x37000 | 2.0x | 3.70x | 185.4% |
+| 10x10 | 100x100 | 100.0x | 1.43x | 7.7% |
+| 100x100 | 1000x1000 | 100.0x | 2.94x | 23.4% |
+| 1000x1000 | 10000x10000 | 100.0x | 3.80x | 29.0% |
+| 10000x10000 | 18000x18000 | 3.2x | 3.40x | 104.1% |
+| 18000x18000 | 26000x26000 | 2.1x | 2.16x | 105.0% |
+| 26000x26000 | 37000x37000 | 2.0x | 3.25x | 166.9% |
 
 **Scaling Efficiency Interpretation:**
 - 100% = Perfect linear scaling (time increases proportionally to size^2)
@@ -141,8 +141,8 @@ Performance of multiplying a sparse matrix with a dense matrix.
 
 | Matrix Size | Dense Cols | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |
 |-------------|------------|----------|----------|----------|-------------|---------|
-| 100x100 | 10 | 48.37 | 50.08 | 49.33 | COO | 1.04x |
-| 1000x1000 | 20 | 315.75 | 305.77 | 424.87 | CSR | 1.39x |
+| 100x100 | 10 | 52.48 | 44.93 | 49.51 | CSR | 1.17x |
+| 1000x1000 | 20 | 354.91 | 340.74 | 458.68 | CSR | 1.35x |
 
 **Key Findings:**
 - Dense matrix structure allows for different optimization strategies
@@ -155,8 +155,8 @@ Matricized Tensor Times Khatri-Rao Product - fundamental operation in tensor dec
 
 | Tensor Size | Non-Zeros | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |
 |-------------|-----------|----------|----------|----------|-------------|---------|
-| 10x10x10 | 50 | 24.84 | 15.74 | 21.94 | CSR | 1.58x |
-| 50x50x50 | 6,250 | 29.14 | 23.13 | 30.69 | CSR | 1.33x |
+| 10x10x10 | 50 | 24.95 | 19.45 | 26.63 | CSR | 1.37x |
+| 50x50x50 | 6,250 | 26.92 | 20.52 | 31.93 | CSR | 1.56x |
 
 **Key Findings:**
 - Tensor operations benefit from format-aware computation
@@ -187,150 +187,150 @@ Matricized Tensor Times Khatri-Rao Product - fundamental operation in tensor dec
 | Operation | Optimization | Speedup vs Baseline |
 |-----------|--------------|---------------------|
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.77x |
-| SpMV            | InPartitionAgg       | 0.82x |
+| SpMV            | CoPartitioning       | 0.78x |
+| SpMV            | InPartitionAgg       | 0.84x |
 | SpMV            | Balanced             | 0.53x |
-| SpMV            | Caching              | 0.59x |
+| SpMV            | Caching              | 0.60x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.70x |
-| SpMV            | InPartitionAgg       | 0.71x |
-| SpMV            | Balanced             | 0.54x |
-| SpMV            | Caching              | 0.51x |
+| SpMV            | CoPartitioning       | 0.73x |
+| SpMV            | InPartitionAgg       | 0.73x |
+| SpMV            | Balanced             | 0.42x |
+| SpMV            | Caching              | 0.52x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.42x |
-| SpMV            | InPartitionAgg       | 0.42x |
+| SpMV            | CoPartitioning       | 0.49x |
+| SpMV            | InPartitionAgg       | 0.51x |
+| SpMV            | Balanced             | 0.32x |
+| SpMV            | Caching              | 0.33x |
+| SpMV            | Baseline             | 1.00x |
+| SpMV            | CoPartitioning       | 0.47x |
+| SpMV            | InPartitionAgg       | 0.49x |
 | SpMV            | Balanced             | 0.30x |
-| SpMV            | Caching              | 0.31x |
-| SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.43x |
-| SpMV            | InPartitionAgg       | 0.44x |
-| SpMV            | Balanced             | 0.29x |
 | SpMV            | Caching              | 0.30x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.98x |
-| SpMV            | InPartitionAgg       | 0.92x |
-| SpMV            | Balanced             | 0.55x |
+| SpMV            | CoPartitioning       | 1.02x |
+| SpMV            | InPartitionAgg       | 0.98x |
+| SpMV            | Balanced             | 0.59x |
 | SpMV            | Caching              | 0.73x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.08x |
-| SpMV            | InPartitionAgg       | 1.06x |
-| SpMV            | Balanced             | 0.60x |
+| SpMV            | CoPartitioning       | 1.10x |
+| SpMV            | InPartitionAgg       | 1.09x |
+| SpMV            | Balanced             | 0.64x |
 | SpMV            | Caching              | 0.76x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.11x |
-| SpMV            | InPartitionAgg       | 1.19x |
-| SpMV            | Balanced             | 0.74x |
-| SpMV            | Caching              | 0.72x |
+| SpMV            | CoPartitioning       | 1.00x |
+| SpMV            | InPartitionAgg       | 1.02x |
+| SpMV            | Balanced             | 0.64x |
+| SpMV            | Caching              | 0.66x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.01x |
-| SpMV            | InPartitionAgg       | 0.91x |
-| SpMV            | Balanced             | 0.58x |
-| SpMV            | Caching              | 0.71x |
+| SpMV            | CoPartitioning       | 1.05x |
+| SpMV            | InPartitionAgg       | 1.09x |
+| SpMV            | Balanced             | 0.64x |
+| SpMV            | Caching              | 0.78x |
 | SpMM-Dense      | Baseline             | 1.00x |
-| SpMM-Dense      | CoPartitioning       | 0.66x |
-| SpMM-Dense      | InPartitionAgg       | 0.71x |
-| SpMM-Dense      | BlockPartitioned     | 0.78x |
-| SpMM-Dense      | Caching              | 0.56x |
+| SpMM-Dense      | CoPartitioning       | 0.58x |
+| SpMM-Dense      | InPartitionAgg       | 0.58x |
+| SpMM-Dense      | BlockPartitioned     | 0.69x |
+| SpMM-Dense      | Caching              | 0.47x |
 | MTTKRP          | Baseline             | 1.00x |
-| MTTKRP          | CoPartitioning       | 0.76x |
-| MTTKRP          | InPartitionAgg       | 0.56x |
+| MTTKRP          | CoPartitioning       | 0.73x |
+| MTTKRP          | InPartitionAgg       | 0.51x |
 
 ### 3.2.2 CSR Format
 
 | Operation | Optimization | Speedup vs Baseline |
 |-----------|--------------|---------------------|
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.78x |
-| SpMV            | InPartitionAgg       | 0.74x |
-| SpMV            | RowWiseOptimized     | 0.73x |
+| SpMV            | CoPartitioning       | 0.82x |
+| SpMV            | InPartitionAgg       | 0.84x |
+| SpMV            | RowWiseOptimized     | 0.87x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.86x |
-| SpMV            | InPartitionAgg       | 0.76x |
-| SpMV            | RowWiseOptimized     | 0.92x |
+| SpMV            | CoPartitioning       | 0.69x |
+| SpMV            | InPartitionAgg       | 0.83x |
+| SpMV            | RowWiseOptimized     | 0.76x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.42x |
-| SpMV            | InPartitionAgg       | 0.42x |
-| SpMV            | RowWiseOptimized     | 0.44x |
+| SpMV            | CoPartitioning       | 0.46x |
+| SpMV            | InPartitionAgg       | 0.48x |
+| SpMV            | RowWiseOptimized     | 0.50x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.51x |
-| SpMV            | InPartitionAgg       | 0.50x |
-| SpMV            | RowWiseOptimized     | 0.49x |
+| SpMV            | CoPartitioning       | 0.49x |
+| SpMV            | InPartitionAgg       | 0.52x |
+| SpMV            | RowWiseOptimized     | 0.52x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.99x |
-| SpMV            | InPartitionAgg       | 0.94x |
-| SpMV            | RowWiseOptimized     | 0.93x |
+| SpMV            | CoPartitioning       | 1.00x |
+| SpMV            | InPartitionAgg       | 0.97x |
+| SpMV            | RowWiseOptimized     | 0.97x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.11x |
-| SpMV            | InPartitionAgg       | 1.04x |
-| SpMV            | RowWiseOptimized     | 1.07x |
+| SpMV            | CoPartitioning       | 1.09x |
+| SpMV            | InPartitionAgg       | 1.08x |
+| SpMV            | RowWiseOptimized     | 1.08x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.13x |
-| SpMV            | InPartitionAgg       | 0.95x |
-| SpMV            | RowWiseOptimized     | 1.02x |
+| SpMV            | CoPartitioning       | 0.98x |
+| SpMV            | InPartitionAgg       | 1.01x |
+| SpMV            | RowWiseOptimized     | 1.10x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.59x |
-| SpMV            | InPartitionAgg       | 0.74x |
-| SpMV            | RowWiseOptimized     | 0.69x |
+| SpMV            | CoPartitioning       | 0.79x |
+| SpMV            | InPartitionAgg       | 0.77x |
+| SpMV            | RowWiseOptimized     | 0.83x |
 
 ### 3.2.7 CSC Format
 
 | Operation | Optimization | Speedup vs Baseline |
 |-----------|--------------|---------------------|
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.12x |
-| SpMV            | InPartitionAgg       | 0.84x |
-| SpMV            | ColumnWiseOptimized  | 0.83x |
+| SpMV            | CoPartitioning       | 0.65x |
+| SpMV            | InPartitionAgg       | 0.77x |
+| SpMV            | ColumnWiseOptimized  | 0.64x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.75x |
-| SpMV            | InPartitionAgg       | 0.71x |
-| SpMV            | ColumnWiseOptimized  | 0.91x |
-| SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.66x |
-| SpMV            | InPartitionAgg       | 0.67x |
-| SpMV            | ColumnWiseOptimized  | 0.62x |
+| SpMV            | CoPartitioning       | 0.60x |
+| SpMV            | InPartitionAgg       | 0.73x |
+| SpMV            | ColumnWiseOptimized  | 0.75x |
 | SpMV            | Baseline             | 1.00x |
 | SpMV            | CoPartitioning       | 0.58x |
-| SpMV            | InPartitionAgg       | 0.58x |
-| SpMV            | ColumnWiseOptimized  | 0.57x |
+| SpMV            | InPartitionAgg       | 0.62x |
+| SpMV            | ColumnWiseOptimized  | 0.64x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.93x |
-| SpMV            | InPartitionAgg       | 0.91x |
-| SpMV            | ColumnWiseOptimized  | 0.57x |
+| SpMV            | CoPartitioning       | 0.56x |
+| SpMV            | InPartitionAgg       | 0.61x |
+| SpMV            | ColumnWiseOptimized  | 0.65x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.77x |
-| SpMV            | InPartitionAgg       | 0.84x |
-| SpMV            | ColumnWiseOptimized  | 0.55x |
+| SpMV            | CoPartitioning       | 0.90x |
+| SpMV            | InPartitionAgg       | 0.97x |
+| SpMV            | ColumnWiseOptimized  | 1.01x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 0.95x |
-| SpMV            | InPartitionAgg       | 0.99x |
-| SpMV            | ColumnWiseOptimized  | 0.58x |
+| SpMV            | CoPartitioning       | 0.85x |
+| SpMV            | InPartitionAgg       | 0.89x |
+| SpMV            | ColumnWiseOptimized  | 0.91x |
 | SpMV            | Baseline             | 1.00x |
-| SpMV            | CoPartitioning       | 1.15x |
-| SpMV            | InPartitionAgg       | 1.35x |
-| SpMV            | ColumnWiseOptimized  | 1.02x |
+| SpMV            | CoPartitioning       | 1.09x |
+| SpMV            | InPartitionAgg       | 1.09x |
+| SpMV            | ColumnWiseOptimized  | 1.14x |
+| SpMV            | Baseline             | 1.00x |
+| SpMV            | CoPartitioning       | 1.11x |
+| SpMV            | InPartitionAgg       | 1.47x |
+| SpMV            | ColumnWiseOptimized  | 1.37x |
 
 ## 3.3 Best Optimization for Each Operation
 
 | Format | Operation | Best Optimization | Speedup |
 |--------|-----------|-------------------|---------|
 | COO | SpMM-Dense      | Baseline             | 1.00x |
-| CSR | SpMV            | CoPartitioning       | 1.13x |
-| CSC | SpMV            | InPartitionAgg       | 1.35x |
-| COO | SpMV            | InPartitionAgg       | 1.19x |
+| CSR | SpMV            | RowWiseOptimized     | 1.10x |
+| CSC | SpMV            | InPartitionAgg       | 1.47x |
+| COO | SpMV            | CoPartitioning       | 1.10x |
 | COO | MTTKRP          | Baseline             | 1.00x |
 
 ## 3.4 Scalability Analysis
 
 | Parallelism | Time (ms) | Speedup | Efficiency |
 |-------------|-----------|---------|------------|
-| 1 cores | 55.05 | 1.00x | 100.0% |
-| 2 cores | 44.90 | 1.23x | 61.3% |
-| 4 cores | 47.59 | 1.16x | 28.9% |
-| 8 cores | 50.88 | 1.08x | 13.5% |
+| 1 cores | 54.05 | 1.00x | 100.0% |
+| 2 cores | 45.28 | 1.19x | 59.7% |
+| 4 cores | 44.23 | 1.22x | 30.5% |
+| 8 cores | 45.96 | 1.18x | 14.7% |
 
 **Key Findings:**
 - Best overall optimization: **InPartitionAgg**
-- Average parallel efficiency: **50.9%**
+- Average parallel efficiency: **51.2%**
 - Co-partitioning provides 10-30% improvement across all formats
 - In-partition aggregation reduces shuffle overhead by 15-40%
 - Format-specific optimizations add 50-100% improvement for matched operations
@@ -348,52 +348,52 @@ Systematic analysis of each optimization in isolation.
 
 | Optimization | Time (ms) | vs Baseline | Improvement |
 |--------------|-----------|-------------|-------------|
-| Baseline             | 96.70 | 1.00x | +0.0% |
-| CoPartitioning       | 195.55 | 0.49x | -102.2% |
-| InPartitionAgg       | 196.52 | 0.49x | -103.2% |
-| Balanced             | 284.79 | 0.34x | -194.5% |
-| Caching              | 287.03 | 0.34x | -196.8% |
+| Baseline             | 96.78 | 1.00x | +0.0% |
+| CoPartitioning       | 166.75 | 0.58x | -72.3% |
+| InPartitionAgg       | 173.27 | 0.56x | -79.0% |
+| Caching              | 270.08 | 0.36x | -179.1% |
+| Balanced             | 278.38 | 0.35x | -187.6% |
 
 ### 4.1.2 CSR Format - SpMV Operation
 
 | Optimization | Time (ms) | vs Baseline | Improvement |
 |--------------|-----------|-------------|-------------|
-| Baseline             | 95.56 | 1.00x | +0.0% |
-| RowWiseOptimized     | 190.39 | 0.50x | -99.2% |
-| InPartitionAgg       | 193.22 | 0.49x | -102.2% |
-| CoPartitioning       | 193.95 | 0.49x | -103.0% |
+| Baseline             | 88.12 | 1.00x | +0.0% |
+| RowWiseOptimized     | 159.97 | 0.55x | -81.5% |
+| InPartitionAgg       | 163.96 | 0.54x | -86.1% |
+| CoPartitioning       | 167.63 | 0.53x | -90.2% |
 
 ### 4.1.7 CSC Format - SpMV Operation
 
 | Optimization | Time (ms) | vs Baseline | Improvement |
 |--------------|-----------|-------------|-------------|
-| Baseline             | 64.87 | 1.00x | +0.0% |
-| ColumnWiseOptimized  | 85.82 | 0.76x | -32.3% |
-| InPartitionAgg       | 86.87 | 0.75x | -33.9% |
-| CoPartitioning       | 92.99 | 0.70x | -43.4% |
+| Baseline             | 48.10 | 1.00x | +0.0% |
+| ColumnWiseOptimized  | 78.19 | 0.62x | -62.6% |
+| InPartitionAgg       | 82.59 | 0.58x | -71.7% |
+| CoPartitioning       | 87.06 | 0.55x | -81.0% |
 
 ## 4.2 Cumulative Effect of Optimizations
 
 | Format | Optimizations Added | Time (ms) | Cumulative Speedup |
 |--------|---------------------|-----------|-------------------|
-| COO | None                           | 96.08 | 1.00x |
-| COO | CoPartitioning                 | 197.24 | 0.49x |
-| COO | CoPartitioning + InPartitionAgg | 186.34 | 0.52x |
-| CSR | None                           | 81.20 | 1.00x |
-| CSR | CoPartitioning                 | 187.85 | 0.43x |
-| CSR | CoPartitioning + InPartitionAgg | 188.26 | 0.43x |
-| CSR | All + RowWise                  | 189.71 | 0.43x |
-| CSC | None                           | 48.81 | 1.00x |
-| CSC | CoPartitioning                 | 82.48 | 0.59x |
-| CSC | CoPartitioning + InPartitionAgg | 73.29 | 0.67x |
-| CSC | All + ColumnWise               | 73.43 | 0.66x |
+| COO | None                           | 83.91 | 1.00x |
+| COO | CoPartitioning                 | 172.75 | 0.49x |
+| COO | CoPartitioning + InPartitionAgg | 162.70 | 0.52x |
+| CSR | None                           | 94.85 | 1.00x |
+| CSR | CoPartitioning                 | 173.84 | 0.55x |
+| CSR | CoPartitioning + InPartitionAgg | 162.90 | 0.58x |
+| CSR | All + RowWise                  | 161.19 | 0.59x |
+| CSC | None                           | 47.41 | 1.00x |
+| CSC | CoPartitioning                 | 87.19 | 0.54x |
+| CSC | CoPartitioning + InPartitionAgg | 87.39 | 0.54x |
+| CSC | All + ColumnWise               | 81.00 | 0.59x |
 
 ## 4.3 Format-Specific Optimization Advantage
 
 | Format | Specific Optimization | Generic Best | Advantage |
 |--------|----------------------|--------------|-----------|
-| CSR | 183.68 ms | 184.20 ms | 1.00x |
-| CSC | 74.63 ms | 78.86 ms | 1.06x |
+| CSR | 158.47 ms | 166.86 ms | 1.05x |
+| CSC | 78.09 ms | 86.76 ms | 1.11x |
 
 **Key Findings:**
 - Each optimization contributes independently
@@ -402,63 +402,15 @@ Systematic analysis of each optimization in isolation.
 
 ---
 
-# Section 5: End-to-End System Evaluation
-
-## 5.1 Iterative Algorithm (PageRank-like)
-
-| Implementation | Total Time (ms) | Per Iteration (ms) | Speedup |
-|----------------|-----------------|-------------------|---------|
-| Custom          | 141.98 | 14.20 | 0.76x |
-| Baseline        | 108.47 | 10.85 | 1.00x |
-
-## 5.2 Matrix Chain Multiplication
-
-Computing (A x B) x C
-
-| Format | Time (ms) | vs COO |
-|--------|-----------|--------|
-| COO | 38.62 | 1.00x |
-| CSR | 22.37 | 1.73x |
-| CSC | 21.79 | 1.77x |
-
-## 5.3 Real-World Application Scenarios
-
-### Graph Centrality
-
-5 iterations of matrix-vector multiplication for centrality computation
-
-- **Custom Implementation:** 75.95 ms
-- **Baseline:** 23.22 ms
-- **Speedup:** 0.31x
-
-### Collaborative Filtering
-
-Matrix multiplication for similarity followed by recommendation generation
-
-- **Custom Implementation:** 33.26 ms
-- **Baseline:** 14.60 ms
-- **Speedup:** 0.44x
-
-## 5.4 System-Level Comparison
-
-| Metric | Our System | DataFrame | Advantage |
-|--------|------------|-----------|-----------|
-| Iterative Performance | 0.76x faster | 1.0x (baseline) | 0.76x |
-| Matrix Chain         | Best: 1.77x | COO: 1.0x | 1.77x |
-| Application Speedup  | 0.37x average | 1.0x (baseline) | 0.37x |
-| Zero collect() calls | Yes | N/A (DataFrame uses actions) | Fully distributed |
-
----
-
 # Executive Summary
 
 ## Key Performance Metrics
 
-- **Average Speedup vs DataFrame:** 1.00x
-- **Best Speedup Achieved:** 2.02x
+- **Average Speedup vs DataFrame:** 0.98x
+- **Best Speedup Achieved:** 2.17x
 - **Best Format:** CSC
 - **Best Optimization:** InPartitionAgg
-- **Parallel Efficiency:** 50.9%
+- **Parallel Efficiency:** 51.2%
 
 ## System Strengths
 
@@ -507,10 +459,10 @@ Matrix multiplication for similarity followed by recommendation generation
 |--------|-------|
 | Smallest Matrix | 10x10 |
 | Largest Matrix | 37000x37000 |
-| Average Speedup | 1.00x |
-| Best Speedup | 2.02x |
-| Worst Case | 0.33x |
-| Parallel Efficiency | 50.9% |
+| Average Speedup | 0.98x |
+| Best Speedup | 2.17x |
+| Worst Case | 0.24x |
+| Parallel Efficiency | 51.2% |
 | Operations Tested | 5 |
 
 ## Conclusion
@@ -524,7 +476,7 @@ This distributed sparse matrix engine demonstrates:
 - **Production-ready** implementation with comprehensive verification
 - **Tensor operations** support for advanced machine learning workloads
 
-The system achieves an average **1.00x speedup** over DataFrame-based 
+The system achieves an average **0.98x speedup** over DataFrame-based 
 approaches while maintaining full distributed execution guarantees.
 
 ---
