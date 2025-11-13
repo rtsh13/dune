@@ -5,36 +5,36 @@ import org.apache.spark.sql.SparkSession
 import java.io.PrintWriter
 import scala.collection.mutable.ArrayBuffer
 
-/** Master benchmark controller following PDSS coursework guidelines
-  * Generates a single comprehensive markdown report
+/** Master benchmark controller following PDSS coursework guidelines Generates a
+  * single comprehensive markdown report
   */
 object BenchmarkController {
 
   case class ExperimentalSetup(
-    hardwareInfo: HardwareInfo,
-    softwareInfo: SoftwareInfo,
-    datasets: Seq[DatasetDiscovery.DatasetInfo]
+      hardwareInfo: HardwareInfo,
+      softwareInfo: SoftwareInfo,
+      datasets: Seq[DatasetDiscovery.DatasetInfo]
   )
 
   case class HardwareInfo(
-    processors: Int,
-    memoryGB: Long,
-    osName: String
+      processors: Int,
+      memoryGB: Long,
+      osName: String
   )
 
   case class SoftwareInfo(
-    sparkVersion: String,
-    scalaVersion: String,
-    javaVersion: String,
-    master: String,
-    defaultParallelism: Int
+      sparkVersion: String,
+      scalaVersion: String,
+      javaVersion: String,
+      master: String,
+      defaultParallelism: Int
   )
 
   def runCompleteBenchmarkSuite(
-    sc: SparkContext,
-    spark: SparkSession,
-    dataDir: String = "synthetic-data",
-    outputFile: String = "results/COMPREHENSIVE_BENCHMARK_REPORT.md"
+      sc: SparkContext,
+      spark: SparkSession,
+      dataDir: String = "synthetic-data",
+      outputFile: String = "results/COMPREHENSIVE_BENCHMARK_REPORT.md"
   ): Unit = {
 
     println("=" * 80)
@@ -65,33 +65,39 @@ object BenchmarkController {
       // SECTION 2: MICROBENCHMARK RESULTS
       println("\n\n### SECTION 2: MICROBENCHMARK RESULTS ###\n")
       val microResults = MicrobenchmarkSuite.runMicrobenchmarks(
-        sc, spark, setup.datasets, iterations = 5
+        sc,
+        spark,
+        setup.datasets,
+        iterations = 5
       )
       writeMicrobenchmarkResults(writer, microResults)
 
       // SECTION 3: IMPACT OF DISTRIBUTED OPTIMIZATIONS
       println("\n\n### SECTION 3: DISTRIBUTED OPTIMIZATIONS ###\n")
       val optimizationResults = OptimizationImpactSuite.runOptimizationImpact(
-        sc, setup.datasets, iterations = 3
+        sc,
+        setup.datasets,
+        iterations = 3
       )
       writeOptimizationImpact(writer, optimizationResults)
 
       // SECTION 4: ABLATION STUDIES
       println("\n\n### SECTION 4: ABLATION STUDIES ###\n")
       val ablationResults = AblationStudySuite.runAblationStudies(
-        sc, setup.datasets, iterations = 3
+        sc,
+        setup.datasets,
+        iterations = 3
       )
       writeAblationStudies(writer, ablationResults)
 
-      // SECTION 5: END-TO-END EVALUATION
-      println("\n\n### SECTION 5: END-TO-END EVALUATION ###\n")
-      val endToEndResults = EndToEndSuite.runEndToEndEvaluation(
-        sc, setup.datasets
-      )
-      writeEndToEndEvaluation(writer, endToEndResults)
-
       // FINAL SUMMARY
-      writeFinalSummary(writer, setup, microResults, optimizationResults, ablationResults, endToEndResults)
+      writeFinalSummary(
+        writer,
+        setup,
+        microResults,
+        optimizationResults,
+        ablationResults
+      )
 
       println("\n\n" + "=" * 80)
       println("BENCHMARK SUITE COMPLETE")
@@ -114,8 +120,8 @@ object BenchmarkController {
   }
 
   private def documentExperimentalSetup(
-    sc: SparkContext,
-    dataDir: String
+      sc: SparkContext,
+      dataDir: String
   ): ExperimentalSetup = {
 
     println("Documenting experimental setup...")
@@ -141,8 +147,8 @@ object BenchmarkController {
   }
 
   private def writeExperimentalSetup(
-    writer: PrintWriter,
-    setup: ExperimentalSetup
+      writer: PrintWriter,
+      setup: ExperimentalSetup
   ): Unit = {
 
     writer.println("# Section 1: Experimental Setup")
@@ -160,7 +166,9 @@ object BenchmarkController {
     writer.println(s"- **Scala Version:** ${setup.softwareInfo.scalaVersion}")
     writer.println(s"- **Java Version:** ${setup.softwareInfo.javaVersion}")
     writer.println(s"- **Spark Master:** ${setup.softwareInfo.master}")
-    writer.println(s"- **Default Parallelism:** ${setup.softwareInfo.defaultParallelism}")
+    writer.println(
+      s"- **Default Parallelism:** ${setup.softwareInfo.defaultParallelism}"
+    )
     writer.println()
 
     writer.println("## 1.3 Test Datasets")
@@ -169,20 +177,28 @@ object BenchmarkController {
     writer.println("|----------|------|------|-----------|----------|")
 
     setup.datasets.foreach { ds =>
-      writer.println(f"| ${ds.category}%-12s | ${ds.size}x${ds.size} | ${ds.matrixFile} | ${ds.fileSizeMB}%.1f | 95%% |")
+      writer.println(
+        f"| ${ds.category}%-12s | ${ds.size}x${ds.size} | ${ds.matrixFile} | ${ds.fileSizeMB}%.1f | 95%% |"
+      )
     }
 
     writer.println()
     writer.println("## 1.4 Baseline System")
     writer.println()
     writer.println("We compare against:")
-    writer.println("- **SparkSQL DataFrame**: Standard Spark DataFrame operations")
-    writer.println("- **Naive RDD Implementation**: Simple join without optimizations")
+    writer.println(
+      "- **SparkSQL DataFrame**: Standard Spark DataFrame operations"
+    )
+    writer.println(
+      "- **Naive RDD Implementation**: Simple join without optimizations"
+    )
     writer.println()
 
     writer.println("## 1.5 Metrics Measured")
     writer.println()
-    writer.println("- **Execution Time**: Total time for operation (milliseconds)")
+    writer.println(
+      "- **Execution Time**: Total time for operation (milliseconds)"
+    )
     writer.println("- **Speedup**: Performance relative to baseline")
     writer.println("- **Throughput**: Operations per second")
     writer.println("- **Scalability**: Performance with varying parallelism")
@@ -196,7 +212,9 @@ object BenchmarkController {
     writer.println("- **Wait Time**: 500-1000ms between iterations")
     writer.println("- **Measurement**: Nanosecond precision timing")
     writer.println("- **Result Forcing**: count() to force evaluation")
-    writer.println("- **No Driver Bottlenecks**: Zero collect() or collectAsMap() operations")
+    writer.println(
+      "- **No Driver Bottlenecks**: Zero collect() or collectAsMap() operations"
+    )
     writer.println()
 
     writer.println("---")
@@ -204,8 +222,8 @@ object BenchmarkController {
   }
 
   private def writeMicrobenchmarkResults(
-    writer: PrintWriter,
-    results: MicrobenchmarkSuite.MicroResults
+      writer: PrintWriter,
+      results: MicrobenchmarkSuite.MicroResults
   ): Unit = {
 
     writer.println("# Section 2: Microbenchmark Results")
@@ -219,18 +237,32 @@ object BenchmarkController {
     writer.println("| Size | COO (ms) | CSR (ms) | CSC (ms) | Best Format |")
     writer.println("|------|----------|----------|----------|-------------|")
 
-    results.formatComparison.filter(_.operation == "SpMV").groupBy(_.size).toSeq.sortBy(_._1).foreach { case (size, sizeResults) =>
-      val cooTime = sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
-      val csrTime = sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
-      val cscTime = sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
-      val best = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime)).minBy(_._2)._1
-      writer.println(f"| ${size}x${size} | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best |")
-    }
+    results.formatComparison
+      .filter(_.operation == "SpMV")
+      .groupBy(_.size)
+      .toSeq
+      .sortBy(_._1)
+      .foreach { case (size, sizeResults) =>
+        val cooTime =
+          sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
+        val csrTime =
+          sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
+        val cscTime =
+          sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
+        val best = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime))
+          .minBy(_._2)
+          ._1
+        writer.println(
+          f"| ${size}x${size} | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best |"
+        )
+      }
 
     writer.println()
     writer.println("**Key Findings:**")
     writer.println(s"- Best overall format: **${results.bestFormat}**")
-    writer.println("- Format performance varies by operation type and matrix structure")
+    writer.println(
+      "- Format performance varies by operation type and matrix structure"
+    )
     writer.println()
 
     // 2.2 DataFrame Comparison
@@ -239,22 +271,35 @@ object BenchmarkController {
     writer.println("| Size | Custom (ms) | DataFrame (ms) | Speedup | Winner |")
     writer.println("|------|-------------|----------------|---------|--------|")
 
-    results.dataframeComparison.groupBy(_.size).toSeq.sortBy(_._1).foreach { case (size, sizeResults) =>
-      val custom = sizeResults.find(_.implementation == "Custom").map(_.timeMs).getOrElse(0.0)
-      val df = sizeResults.find(_.implementation == "DataFrame").map(_.timeMs).getOrElse(0.0)
-      val speedup = if (custom > 0) df / custom else 0.0
-      val winner = if (speedup >= 1.0) "Custom" else "DataFrame"
-      val bestFormatResult = results.formatComparison
-        .filter(r => r.size == size && r.operation == "SpMV")
-        .minBy(_.timeMs)
-      val bestFormat = bestFormatResult.format
-      writer.println(f"| ${size}x${size} | $custom%.2f | $bestFormat | $df%.2f | ${speedup}%.2fx | $winner |")
+    results.dataframeComparison.groupBy(_.size).toSeq.sortBy(_._1).foreach {
+      case (size, sizeResults) =>
+        val custom = sizeResults
+          .find(_.implementation == "Custom")
+          .map(_.timeMs)
+          .getOrElse(0.0)
+        val df = sizeResults
+          .find(_.implementation == "DataFrame")
+          .map(_.timeMs)
+          .getOrElse(0.0)
+        val speedup = if (custom > 0) df / custom else 0.0
+        val winner = if (speedup >= 1.0) "Custom" else "DataFrame"
+        val bestFormatResult = results.formatComparison
+          .filter(r => r.size == size && r.operation == "SpMV")
+          .minBy(_.timeMs)
+        val bestFormat = bestFormatResult.format
+        writer.println(
+          f"| ${size}x${size} | $custom%.2f | $bestFormat | $df%.2f | ${speedup}%.2fx | $winner |"
+        )
     }
 
     writer.println()
     writer.println("**Key Findings:**")
-    writer.println(f"- Average speedup vs DataFrame: **${results.bestSpeedup}%.2fx**")
-    writer.println("- Custom implementation leverages sparse structure efficiently")
+    writer.println(
+      f"- Average speedup vs DataFrame: **${results.bestSpeedup}%.2fx**"
+    )
+    writer.println(
+      "- Custom implementation leverages sparse structure efficiently"
+    )
     writer.println("- DataFrame has overhead for sparse operations")
     writer.println()
 
@@ -265,7 +310,9 @@ object BenchmarkController {
     writer.println("|-----------|---------------|----------------|")
 
     results.operationComparison.foreach { op =>
-      writer.println(f"| ${op.operation}%-20s | ${op.avgTimeMs}%.2f | ${op.relativeSpeed}%.2fx |")
+      writer.println(
+        f"| ${op.operation}%-20s | ${op.avgTimeMs}%.2f | ${op.relativeSpeed}%.2fx |"
+      )
     }
 
     writer.println()
@@ -273,23 +320,35 @@ object BenchmarkController {
     // 2.4 Sparsity Impact
     writer.println("## 2.4 Impact of Matrix Sparsity")
     writer.println()
-    writer.println("All test matrices use **95% sparsity** (5% non-zero entries).")
+    writer.println(
+      "All test matrices use **95% sparsity** (5% non-zero entries)."
+    )
     writer.println()
     writer.println("- Sparse formats provide significant memory savings")
-    writer.println("- Performance scales with number of non-zeros, not matrix dimensions")
+    writer.println(
+      "- Performance scales with number of non-zeros, not matrix dimensions"
+    )
     writer.println()
 
     // 2.5 Scaling Analysis
     writer.println("## 2.5 Scaling with Matrix Size")
     writer.println()
-    writer.println("Analysis of performance scaling as matrix dimensions increase.")
+    writer.println(
+      "Analysis of performance scaling as matrix dimensions increase."
+    )
     writer.println()
-    writer.println("| From Size | To Size | Size Increase | Time Increase | Scaling Efficiency |")
-    writer.println("|-----------|---------|---------------|---------------|-------------------|")
+    writer.println(
+      "| From Size | To Size | Size Increase | Time Increase | Scaling Efficiency |"
+    )
+    writer.println(
+      "|-----------|---------|---------------|---------------|-------------------|"
+    )
 
     val uniqueResults = results.scalingAnalysis
       .groupBy(_._1)
-      .map { case (size, entries) => (size, entries.map(_._2).min) } // Take fastest time for each size
+      .map { case (size, entries) =>
+        (size, entries.map(_._2).min)
+      } // Take fastest time for each size
       .toSeq
       .sortBy(_._1)
 
@@ -297,16 +356,19 @@ object BenchmarkController {
       for (i <- 1 until uniqueResults.size) {
         val (size1, time1) = uniqueResults(i - 1)
         val (size2, time2) = uniqueResults(i)
-        
+
         // Skip if sizes are the same (shouldn't happen after dedup, but safety check)
         if (size2 != size1) {
           val sizeIncrease = (size2.toDouble / size1) * (size2.toDouble / size1)
           val timeIncrease = time2 / time1
-          
+
           // Only calculate efficiency if size actually increased
           if (sizeIncrease > 1.0) {
-            val efficiency = (math.log(timeIncrease) / math.log(sizeIncrease)) * 100
-            writer.println(f"| ${size1}x${size1} | ${size2}x${size2} | ${sizeIncrease}%.1fx | ${timeIncrease}%.2fx | ${efficiency}%.1f%% |")
+            val efficiency =
+              (math.log(timeIncrease) / math.log(sizeIncrease)) * 100
+            writer.println(
+              f"| ${size1}x${size1} | ${size2}x${size2} | ${sizeIncrease}%.1fx | ${timeIncrease}%.2fx | ${efficiency}%.1f%% |"
+            )
           }
         }
       }
@@ -314,7 +376,9 @@ object BenchmarkController {
 
     writer.println()
     writer.println("**Scaling Efficiency Interpretation:**")
-    writer.println("- 100% = Perfect linear scaling (time increases proportionally to size^2)")
+    writer.println(
+      "- 100% = Perfect linear scaling (time increases proportionally to size^2)"
+    )
     writer.println("- >100% = Sublinear scaling (better than expected)")
     writer.println("- <100% = Superlinear scaling (worse than expected)")
 
@@ -323,74 +387,115 @@ object BenchmarkController {
     // NEW: 2.6 SpMM-Dense Results
     writer.println("## 2.6 Sparse Matrix * Dense Matrix (SpMM-Dense)")
     writer.println()
-    writer.println("Performance of multiplying a sparse matrix with a dense matrix.")
+    writer.println(
+      "Performance of multiplying a sparse matrix with a dense matrix."
+    )
     writer.println()
-    writer.println("| Matrix Size | Dense Cols | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |")
-    writer.println("|-------------|------------|----------|----------|----------|-------------|---------|")
+    writer.println(
+      "| Matrix Size | Dense Cols | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |"
+    )
+    writer.println(
+      "|-------------|------------|----------|----------|----------|-------------|---------|"
+    )
 
-    val spmmDenseResults = results.formatComparison.filter(_.operation == "SpMM-Dense")
-    spmmDenseResults.groupBy(_.size).toSeq.sortBy(_._1).foreach { case (size, sizeResults) =>
-      val cooTime = sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
-      val csrTime = sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
-      val cscTime = sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
-      
-      val times = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime)).filter(_._2 > 0)
-      if (times.nonEmpty) {
-        val (best, bestTime) = times.minBy(_._2)
-        val speedup = times.map(_._2).max / bestTime
-        val denseCols = if (size == 100) 10 else if (size == 1000) 20 else 10
-        writer.println(f"| ${size}x${size} | $denseCols | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best | ${speedup}%.2fx |")
-      }
+    val spmmDenseResults =
+      results.formatComparison.filter(_.operation == "SpMM-Dense")
+    spmmDenseResults.groupBy(_.size).toSeq.sortBy(_._1).foreach {
+      case (size, sizeResults) =>
+        val cooTime =
+          sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
+        val csrTime =
+          sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
+        val cscTime =
+          sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
+
+        val times = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime))
+          .filter(_._2 > 0)
+        if (times.nonEmpty) {
+          val (best, bestTime) = times.minBy(_._2)
+          val speedup = times.map(_._2).max / bestTime
+          val denseCols = if (size == 100) 10 else if (size == 1000) 20 else 10
+          writer.println(
+            f"| ${size}x${size} | $denseCols | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best | ${speedup}%.2fx |"
+          )
+        }
     }
 
     if (spmmDenseResults.isEmpty) {
       writer.println("| - | - | - | - | - | - | - |")
       writer.println()
-      writer.println("*No SpMM-Dense data available. Run: `python3 generate_tensor_data.py`*")
+      writer.println(
+        "*No SpMM-Dense data available. Run: `python3 generate_tensor_data.py`*"
+      )
     }
 
     writer.println()
     writer.println("**Key Findings:**")
-    writer.println("- Dense matrix structure allows for different optimization strategies")
-    writer.println("- CSR format typically performs best due to row-wise access pattern")
+    writer.println(
+      "- Dense matrix structure allows for different optimization strategies"
+    )
+    writer.println(
+      "- CSR format typically performs best due to row-wise access pattern"
+    )
     writer.println("- Performance depends on dense matrix dimensions")
     writer.println()
 
     // NEW: 2.7 MTTKRP Results
     writer.println("## 2.7 MTTKRP (Tensor Operations)")
     writer.println()
-    writer.println("Matricized Tensor Times Khatri-Rao Product - fundamental operation in tensor decomposition.")
+    writer.println(
+      "Matricized Tensor Times Khatri-Rao Product - fundamental operation in tensor decomposition."
+    )
     writer.println()
-    writer.println("| Tensor Size | Non-Zeros | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |")
-    writer.println("|-------------|-----------|----------|----------|----------|-------------|---------|")
+    writer.println(
+      "| Tensor Size | Non-Zeros | COO (ms) | CSR (ms) | CSC (ms) | Best Format | Speedup |"
+    )
+    writer.println(
+      "|-------------|-----------|----------|----------|----------|-------------|---------|"
+    )
 
     val mttkrpResults = results.formatComparison.filter(_.operation == "MTTKRP")
-    mttkrpResults.groupBy(_.size).toSeq.sortBy(_._1).foreach { case (size, sizeResults) =>
-      val cooTime = sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
-      val csrTime = sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
-      val cscTime = sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
-      
-      val times = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime)).filter(_._2 > 0)
-      if (times.nonEmpty) {
-        val (best, bestTime) = times.minBy(_._2)
-        val speedup = times.map(_._2).max / bestTime
-        val nnz = (size * size * size * 0.05).toInt // 95% sparsity
-        writer.println(f"| ${size}x${size}x${size} | ${nnz}%,d | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best | ${speedup}%.2fx |")
-      }
+    mttkrpResults.groupBy(_.size).toSeq.sortBy(_._1).foreach {
+      case (size, sizeResults) =>
+        val cooTime =
+          sizeResults.find(_.format == "COO").map(_.timeMs).getOrElse(0.0)
+        val csrTime =
+          sizeResults.find(_.format == "CSR").map(_.timeMs).getOrElse(0.0)
+        val cscTime =
+          sizeResults.find(_.format == "CSC").map(_.timeMs).getOrElse(0.0)
+
+        val times = Seq(("COO", cooTime), ("CSR", csrTime), ("CSC", cscTime))
+          .filter(_._2 > 0)
+        if (times.nonEmpty) {
+          val (best, bestTime) = times.minBy(_._2)
+          val speedup = times.map(_._2).max / bestTime
+          val nnz = (size * size * size * 0.05).toInt // 95% sparsity
+          writer.println(
+            f"| ${size}x${size}x${size} | ${nnz}%,d | $cooTime%.2f | $csrTime%.2f | $cscTime%.2f | $best | ${speedup}%.2fx |"
+          )
+        }
     }
 
     if (mttkrpResults.isEmpty) {
       writer.println("| - | - | - | - | - | - | - |")
       writer.println()
-      writer.println("*No MTTKRP data available. Run: `python3 generate_tensor_data.py`*")
+      writer.println(
+        "*No MTTKRP data available. Run: `python3 generate_tensor_data.py`*"
+      )
     }
 
     writer.println()
     writer.println("**Key Findings:**")
     writer.println("- Tensor operations benefit from format-aware computation")
-    writer.println("- CSR format often performs well due to matricization patterns")
-    writer.println("- Performance highly dependent on tensor sparsity structure")
-    writer.println("- MTTKRP is memory-intensive and benefits from efficient data layout")
+    writer.println(
+      "- CSR format often performs well due to matricization patterns"
+    )
+    writer.println(
+      "- Performance highly dependent on tensor sparsity structure"
+    )
+    writer.println(
+      "- MTTKRP is memory-intensive and benefits from efficient data layout"
+    )
     writer.println()
 
     writer.println("---")
@@ -398,8 +503,8 @@ object BenchmarkController {
   }
 
   private def writeOptimizationImpact(
-    writer: PrintWriter,
-    results: OptimizationImpactSuite.OptimizationResults
+      writer: PrintWriter,
+      results: OptimizationImpactSuite.OptimizationResults
   ): Unit = {
 
     writer.println("# Section 3: Impact of Distributed Optimizations")
@@ -411,11 +516,17 @@ object BenchmarkController {
     writer.println("|--------------|-------------|")
     writer.println("| Baseline | Simple join without optimizations |")
     writer.println("| Co-Partitioning | Hash partition both RDDs by join key |")
-    writer.println("| In-Partition Agg | Aggregate within partitions before shuffle |")
+    writer.println(
+      "| In-Partition Agg | Aggregate within partitions before shuffle |"
+    )
     writer.println("| Balanced | Load-balanced partitioning by output rows |")
     writer.println("| Caching | Persist intermediate RDDs |")
-    writer.println("| Format-Specific | Row-wise (CSR) or column-wise (CSC) optimization |")
-    writer.println("| Block-Partitioned | Tile-based computation for SpMM operations |")
+    writer.println(
+      "| Format-Specific | Row-wise (CSR) or column-wise (CSC) optimization |"
+    )
+    writer.println(
+      "| Block-Partitioned | Tile-based computation for SpMM operations |"
+    )
     writer.println()
 
     // 3.2 Effectiveness by Format
@@ -430,7 +541,9 @@ object BenchmarkController {
 
       results.byFormat.get(format).foreach { formatResults =>
         formatResults.foreach { r =>
-          writer.println(f"| ${r.operation}%-15s | ${r.optimization}%-20s | ${r.speedup}%.2fx |")
+          writer.println(
+            f"| ${r.operation}%-15s | ${r.optimization}%-20s | ${r.speedup}%.2fx |"
+          )
         }
       }
       writer.println()
@@ -442,8 +555,11 @@ object BenchmarkController {
     writer.println("| Format | Operation | Best Optimization | Speedup |")
     writer.println("|--------|-----------|-------------------|---------|")
 
-    results.bestPerOperation.foreach { case ((format, operation), (optimization, speedup)) =>
-      writer.println(f"| $format | $operation%-15s | $optimization%-20s | ${speedup}%.2fx |")
+    results.bestPerOperation.foreach {
+      case ((format, operation), (optimization, speedup)) =>
+        writer.println(
+          f"| $format | $operation%-15s | $optimization%-20s | ${speedup}%.2fx |"
+        )
     }
 
     writer.println()
@@ -458,17 +574,29 @@ object BenchmarkController {
       val speedup = if (results.scalability.nonEmpty) {
         results.scalability.head._2 / time
       } else 1.0
-      writer.println(f"| $parallelism cores | $time%.2f | ${speedup}%.2fx | ${efficiency * 100}%.1f%% |")
+      writer.println(
+        f"| $parallelism cores | $time%.2f | ${speedup}%.2fx | ${efficiency * 100}%.1f%% |"
+      )
     }
 
     writer.println()
     writer.println("**Key Findings:**")
     writer.println(s"- Best overall optimization: **${results.bestOverall}**")
-    writer.println(f"- Average parallel efficiency: **${results.avgEfficiency * 100}%.1f%%**")
-    writer.println("- Co-partitioning provides 10-30% improvement across all formats")
-    writer.println("- In-partition aggregation reduces shuffle overhead by 15-40%")
-    writer.println("- Format-specific optimizations add 50-100% improvement for matched operations")
-    writer.println("- Block-partitioned approach shows promise for SpMM operations")
+    writer.println(
+      f"- Average parallel efficiency: **${results.avgEfficiency * 100}%.1f%%**"
+    )
+    writer.println(
+      "- Co-partitioning provides 10-30% improvement across all formats"
+    )
+    writer.println(
+      "- In-partition aggregation reduces shuffle overhead by 15-40%"
+    )
+    writer.println(
+      "- Format-specific optimizations add 50-100% improvement for matched operations"
+    )
+    writer.println(
+      "- Block-partitioned approach shows promise for SpMM operations"
+    )
     writer.println()
 
     writer.println("---")
@@ -476,8 +604,8 @@ object BenchmarkController {
   }
 
   private def writeAblationStudies(
-    writer: PrintWriter,
-    results: AblationStudySuite.AblationResults
+      writer: PrintWriter,
+      results: AblationStudySuite.AblationResults
   ): Unit = {
 
     writer.println("# Section 4: Ablation Studies")
@@ -490,17 +618,25 @@ object BenchmarkController {
     writer.println()
 
     Seq("COO", "CSR", "CSC").foreach { format =>
-      writer.println(s"### 4.1.${format.hashCode % 10} $format Format - SpMV Operation")
+      writer.println(
+        s"### 4.1.${format.hashCode % 10} $format Format - SpMV Operation"
+      )
       writer.println()
       writer.println("| Optimization | Time (ms) | vs Baseline | Improvement |")
       writer.println("|--------------|-----------|-------------|-------------|")
 
       val formatResults = results.individualImpact.filter(_.format == format)
-      val baseline = formatResults.find(_.optimization == "Baseline").map(_.timeMs).getOrElse(0.0)
+      val baseline = formatResults
+        .find(_.optimization == "Baseline")
+        .map(_.timeMs)
+        .getOrElse(0.0)
 
       formatResults.sortBy(_.timeMs).foreach { r =>
-        val improvement = if (baseline > 0) ((baseline - r.timeMs) / baseline) * 100 else 0.0
-        writer.println(f"| ${r.optimization}%-20s | ${r.timeMs}%.2f | ${r.speedup}%.2fx | ${improvement}%+.1f%% |")
+        val improvement =
+          if (baseline > 0) ((baseline - r.timeMs) / baseline) * 100 else 0.0
+        writer.println(
+          f"| ${r.optimization}%-20s | ${r.timeMs}%.2f | ${r.speedup}%.2fx | ${improvement}%+.1f%% |"
+        )
       }
       writer.println()
     }
@@ -508,11 +644,17 @@ object BenchmarkController {
     // 4.2 Cumulative Effect
     writer.println("## 4.2 Cumulative Effect of Optimizations")
     writer.println()
-    writer.println("| Format | Optimizations Added | Time (ms) | Cumulative Speedup |")
-    writer.println("|--------|---------------------|-----------|-------------------|")
+    writer.println(
+      "| Format | Optimizations Added | Time (ms) | Cumulative Speedup |"
+    )
+    writer.println(
+      "|--------|---------------------|-----------|-------------------|"
+    )
 
     results.cumulativeEffect.foreach { r =>
-      writer.println(f"| ${r.format} | ${r.optimizationsAdded}%-30s | ${r.timeMs}%.2f | ${r.cumulativeSpeedup}%.2fx |")
+      writer.println(
+        f"| ${r.format} | ${r.optimizationsAdded}%-30s | ${r.timeMs}%.2f | ${r.cumulativeSpeedup}%.2fx |"
+      )
     }
 
     writer.println()
@@ -520,95 +662,41 @@ object BenchmarkController {
     // 4.3 Format-Specific Optimizations
     writer.println("## 4.3 Format-Specific Optimization Advantage")
     writer.println()
-    writer.println("| Format | Specific Optimization | Generic Best | Advantage |")
-    writer.println("|--------|----------------------|--------------|-----------|")
+    writer.println(
+      "| Format | Specific Optimization | Generic Best | Advantage |"
+    )
+    writer.println(
+      "|--------|----------------------|--------------|-----------|"
+    )
 
-    results.formatAdvantage.foreach { case (format, (specific, generic, advantage)) =>
-      writer.println(f"| $format | ${specific}%.2f ms | ${generic}%.2f ms | ${advantage}%.2fx |")
+    results.formatAdvantage.foreach {
+      case (format, (specific, generic, advantage)) =>
+        writer.println(
+          f"| $format | ${specific}%.2f ms | ${generic}%.2f ms | ${advantage}%.2fx |"
+        )
     }
 
     writer.println()
     writer.println("**Key Findings:**")
     writer.println("- Each optimization contributes independently")
-    writer.println("- Cumulative effects show diminishing returns after 2-3 optimizations")
-    writer.println("- Format-specific optimizations crucial for maximum performance")
+    writer.println(
+      "- Cumulative effects show diminishing returns after 2-3 optimizations"
+    )
+    writer.println(
+      "- Format-specific optimizations crucial for maximum performance"
+    )
     writer.println()
 
-    writer.println("---")
-    writer.println()
-  }
-
-  private def writeEndToEndEvaluation(
-    writer: PrintWriter,
-    results: EndToEndSuite.EndToEndResults
-  ): Unit = {
-
-    writer.println("# Section 5: End-to-End System Evaluation")
-    writer.println()
-
-    // 5.1 Iterative Algorithm
-    writer.println("## 5.1 Iterative Algorithm (PageRank-like)")
-    writer.println()
-    writer.println("| Implementation | Total Time (ms) | Per Iteration (ms) | Speedup |")
-    writer.println("|----------------|-----------------|-------------------|---------|")
-
-    results.iterativeResults.foreach { r =>
-      writer.println(f"| ${r.implementation}%-15s | ${r.totalTime}%.2f | ${r.perIteration}%.2f | ${r.speedup}%.2fx |")
-    }
-
-    writer.println()
-
-    // 5.2 Matrix Chain
-    writer.println("## 5.2 Matrix Chain Multiplication")
-    writer.println()
-    writer.println("Computing (A x B) x C")
-    writer.println()
-    writer.println("| Format | Time (ms) | vs COO |")
-    writer.println("|--------|-----------|--------|")
-
-    results.matrixChainResults.foreach { r =>
-      writer.println(f"| ${r.format} | ${r.timeMs}%.2f | ${r.speedupVsCOO}%.2fx |")
-    }
-
-    writer.println()
-
-    // 5.3 Real-World Application
-    writer.println("## 5.3 Real-World Application Scenarios")
-    writer.println()
-
-    results.applications.foreach { app =>
-      writer.println(s"### ${app.name}")
-      writer.println()
-      writer.println(app.description)
-      writer.println()
-      writer.println(f"- **Custom Implementation:** ${app.customTime}%.2f ms")
-      writer.println(f"- **Baseline:** ${app.baselineTime}%.2f ms")
-      writer.println(f"- **Speedup:** ${app.speedup}%.2fx")
-      writer.println()
-    }
-
-    // 5.4 System Comparison
-    writer.println("## 5.4 System-Level Comparison")
-    writer.println()
-    writer.println("| Metric | Our System | DataFrame | Advantage |")
-    writer.println("|--------|------------|-----------|-----------|")
-
-    results.systemComparison.foreach { case (metric, (ours, baseline, advantage)) =>
-      writer.println(f"| $metric%-20s | $ours | $baseline | $advantage |")
-    }
-
-    writer.println()
     writer.println("---")
     writer.println()
   }
 
   private def writeFinalSummary(
-    writer: PrintWriter,
-    setup: ExperimentalSetup,
-    micro: MicrobenchmarkSuite.MicroResults,
-    optimization: OptimizationImpactSuite.OptimizationResults,
-    ablation: AblationStudySuite.AblationResults,
-    endToEnd: EndToEndSuite.EndToEndResults
+      writer: PrintWriter,
+      setup: ExperimentalSetup,
+      micro: MicrobenchmarkSuite.MicroResults,
+      optimization: OptimizationImpactSuite.OptimizationResults,
+      ablation: AblationStudySuite.AblationResults
   ): Unit = {
 
     writer.println("# Executive Summary")
@@ -616,7 +704,9 @@ object BenchmarkController {
 
     // Key findings
     val avgSpeedup = if (micro.dataframeComparison.nonEmpty) {
-      micro.dataframeComparison.map(r => r.speedup).sum / micro.dataframeComparison.size
+      micro.dataframeComparison
+        .map(r => r.speedup)
+        .sum / micro.dataframeComparison.size
     } else 1.0
 
     writer.println("## Key Performance Metrics")
@@ -625,7 +715,9 @@ object BenchmarkController {
     writer.println(f"- **Best Speedup Achieved:** ${micro.bestSpeedup}%.2fx")
     writer.println(f"- **Best Format:** ${micro.bestFormat}")
     writer.println(f"- **Best Optimization:** ${optimization.bestOverall}")
-    writer.println(f"- **Parallel Efficiency:** ${optimization.avgEfficiency * 100}%.1f%%")
+    writer.println(
+      f"- **Parallel Efficiency:** ${optimization.avgEfficiency * 100}%.1f%%"
+    )
     writer.println()
 
     writer.println("## System Strengths")
@@ -661,12 +753,16 @@ object BenchmarkController {
     writer.println("   - Use COO for mixed workloads and easy prototyping")
     writer.println()
     writer.println("2. **Optimization Strategy**")
-    writer.println("   - Always enable co-partitioning (minimal overhead, good gains)")
+    writer.println(
+      "   - Always enable co-partitioning (minimal overhead, good gains)"
+    )
     writer.println("   - Enable in-partition aggregation for large datasets")
     writer.println("   - Cache matrices for iterative algorithms")
     writer.println()
     writer.println("3. **Parallelism Configuration**")
-    writer.println(f"   - Optimal: 2x number of cores (${setup.softwareInfo.defaultParallelism * 2} partitions)")
+    writer.println(
+      f"   - Optimal: 2x number of cores (${setup.softwareInfo.defaultParallelism * 2} partitions)"
+    )
     writer.println("   - Scales efficiently up to 8-16 cores")
     writer.println("   - Network becomes bottleneck beyond 16 cores")
     writer.println()
@@ -675,13 +771,19 @@ object BenchmarkController {
     writer.println()
     writer.println("| Metric | Value |")
     writer.println("|--------|-------|")
-    writer.println(f"| Smallest Matrix | ${setup.datasets.map(_.size).min}x${setup.datasets.map(_.size).min} |")
-    writer.println(f"| Largest Matrix | ${setup.datasets.map(_.size).max}x${setup.datasets.map(_.size).max} |")
+    writer.println(
+      f"| Smallest Matrix | ${setup.datasets.map(_.size).min}x${setup.datasets.map(_.size).min} |"
+    )
+    writer.println(
+      f"| Largest Matrix | ${setup.datasets.map(_.size).max}x${setup.datasets.map(_.size).max} |"
+    )
     writer.println(f"| Average Speedup | ${avgSpeedup}%.2fx |")
     writer.println(f"| Best Speedup | ${micro.bestSpeedup}%.2fx |")
     writer.println(f"| Worst Case | ${micro.worstCase}%.2fx |")
-    writer.println(f"| Parallel Efficiency | ${optimization.avgEfficiency * 100}%.1f%% |")
-    
+    writer.println(
+      f"| Parallel Efficiency | ${optimization.avgEfficiency * 100}%.1f%% |"
+    )
+
     // Count operations tested
     val operationCount = micro.formatComparison.map(_.operation).distinct.size
     writer.println(f"| Operations Tested | $operationCount |")
@@ -691,15 +793,29 @@ object BenchmarkController {
     writer.println()
     writer.println("This distributed sparse matrix engine demonstrates:")
     writer.println()
-    writer.println("- **Superior performance** compared to SparkSQL DataFrame for sparse operations")
-    writer.println("- **True distributed execution** with zero driver bottlenecks")
-    writer.println("- **Format-aware optimizations** that provide 2-3x improvements")
+    writer.println(
+      "- **Superior performance** compared to SparkSQL DataFrame for sparse operations"
+    )
+    writer.println(
+      "- **True distributed execution** with zero driver bottlenecks"
+    )
+    writer.println(
+      "- **Format-aware optimizations** that provide 2-3x improvements"
+    )
     writer.println("- **Linear scalability** for sparse matrix operations")
-    writer.println("- **Production-ready** implementation with comprehensive verification")
-    writer.println("- **Tensor operations** support for advanced machine learning workloads")
+    writer.println(
+      "- **Production-ready** implementation with comprehensive verification"
+    )
+    writer.println(
+      "- **Tensor operations** support for advanced machine learning workloads"
+    )
     writer.println()
-    writer.println(f"The system achieves an average **${avgSpeedup}%.2fx speedup** over DataFrame-based ")
-    writer.println("approaches while maintaining full distributed execution guarantees.")
+    writer.println(
+      f"The system achieves an average **${avgSpeedup}%.2fx speedup** over DataFrame-based "
+    )
+    writer.println(
+      "approaches while maintaining full distributed execution guarantees."
+    )
     writer.println()
 
     writer.println("---")
@@ -710,9 +826,9 @@ object BenchmarkController {
 
 object BenchmarkRunner {
   def main(args: Array[String]): Unit = {
-    
+
     val memoryGB = 12
-    
+
     val conf = new SparkConf()
       .setAppName("Comprehensive Benchmark Suite")
       .setMaster("local[*]")
@@ -721,18 +837,19 @@ object BenchmarkRunner {
       .set("spark.executor.memory", s"${memoryGB}g")
       .set("spark.memory.fraction", "0.8")
       .set("spark.memory.storageFraction", "0.3")
-    
+
     val sc = new SparkContext(conf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
     sc.setLogLevel("WARN")
-    
+
     try {
       BenchmarkController.runCompleteBenchmarkSuite(
-        sc, spark,
+        sc,
+        spark,
         dataDir = "synthetic-data",
         outputFile = "results/COMPREHENSIVE_BENCHMARK_REPORT.md"
       )
-      
+
     } catch {
       case e: Exception =>
         println("\nERROR: Benchmark failed")
