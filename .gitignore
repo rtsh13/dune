@@ -43,3 +43,5 @@ synthetic-data/*
 !synthetic-data/sparse_vector_100.csv
 !synthetic-data/sparse_vector_1000.csv
 !synthetic-data/sparse_vector_10000.csv
+
+output/*
